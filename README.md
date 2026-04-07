@@ -1,2 +1,1 @@
 # TradingDelChow
-# Hola
