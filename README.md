@@ -7,6 +7,6 @@
 ## 2. Reglas del Negocio:
 ### 
 ## 3. Distribución del desarrollo por integrante:
-### Abad David:
-### Ramirez Jeremi:
-### Sánchez José:
+### Abad David(BackEnd): Se encargará del servidor y la base de datos necesarios para operar, además de la conexión con las API's mencionadas anteriormente.
+### Ramirez Jeremi(FrontEnd): Se encargará de la parte gráfica y la experiencia de usuario. Presentará una interfaz gráfica intuitiva que enganche al consumidor.
+### Sánchez José(Algoritmos): Se encargará del comportamiento de la aplicación. Traducirá los requisitos de la aplicación en código y creará algoritmos lógicos que permitan el uso correcto de la aplicación.
