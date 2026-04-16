@@ -1,1 +1,16 @@
+=========================================
+REGLAS DE NEGOCIO - TRADEAYA!
+=========================================
 
+1. ALGORITMO: CÁLCULO DE COMISIÓN
+   - Entrada: Monto de la transacción (monto)
+   - Lógica: comision = monto * 0.005
+   - Salida: Valor de la comisión
+
+2. ALGORITMO: VALIDACIÓN DE COMPRA
+   - Requisito: Saldo Disponible >= (Costo Acciones + Comisión)
+   - Si cumple: Ejecutar transacción y restar del saldo.
+   - Si no cumple: Enviar error "Fondos Insuficientes".
+
+3. ALGORITMO: VALORIZACIÓN DE PORTAFOLIO
+   - Lógica: Sumar (Cantidad de acciones de cada empresa * Precio actual de mercado) + Saldo en efectivo.
