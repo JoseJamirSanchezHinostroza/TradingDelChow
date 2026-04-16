@@ -1,7 +1,7 @@
 # 1. IMPORTACIÓN: Aquí es donde conectamos las carpetas
-from backend import conexion_api  # Lo que haga el Integrante 1
-from logic import reglas_negocio   # LO QUE HACES TÚ (Integrante 3)
-from frontend import interfaz      # Lo que haga el Integrante 2
+from backend import conexion_api  # Trabajo del Encargado BackEnd
+from logic import reglas_negocio   # Trabajo del Encargado Logic
+from frontend import interfaz      # Trabajo del Encargado FrontEnd
 
 def iniciar_programa():
     print("--- Bienvenido a TradeaYa! ---")
