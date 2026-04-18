@@ -11,7 +11,6 @@ Este archivo contiene los algoritmos de decisión y cálculos matemáticos.
 
 from datetime import datetime
 import pytz # Librería para manejar zonas horarias
-
 "Verifica si el mercado de EE.UU. está abierto (Lunes-Viernes, 9:30 AM - 4:00 PM EST)."
 def mercado_abierto():
     tz_ny = pytz.timezone('America/New_York')# Definimos la zona horaria de Nueva York
@@ -26,6 +25,14 @@ def mercado_abierto():
 def calcular_comision(monto_total):  
     return monto_total * 0.005
 
+import time # Añade esta importación al inicio
+LATENCIA_MAXIMA_SEGUNDOS = 60 # Regla de negocio: 60 segundos máximo
+def es_precio_valido(timestamp_precio): # Verifica si el precio fue obtenido hace menos de 60 segundos.
+#'timestamp_precio' es el momento en que el Backend trajo el dato.
+    tiempo_actual = time.time()
+    diferencia = tiempo_actual - timestamp_precio
+    return diferencia <= LATENCIA_MAXIMA_SEGUNDOS
+
 "Calcula el costo de las acciones más la comisión del broker."
 def calcular_monto_a_pagar(precio_actual, cantidad):
     monto_total = precio_actual * cantidad #Total sin incluir comisión
@@ -36,6 +43,8 @@ def calcular_monto_a_pagar(precio_actual, cantidad):
 def validar_transaccion_compra(saldo_actual, precio_actual, cantidad):
     if not mercado_abierto(): # REGLA 1: Horario de mercado
         return False, "Mercado cerrado. Solo se permite visualización.", 0
+    if not es_precio_valido(timestamp_precio): # NUEVA REGLA: Latencia de datos
+        return False, "El precio está desactualizado. Por favor, espera a la actualización del mercado.", 0
     monto_a_pagar = calcular_monto_a_pagar(precio_actual, cantidad)
     if saldo_actual >= monto_a_pagar: #Si nos alcanza...
         nuevo_saldo = saldo_actual - monto_a_pagar #Saldo que queda después de realizar la compra
@@ -44,7 +53,6 @@ def validar_transaccion_compra(saldo_actual, precio_actual, cantidad):
     else: #Si nos falta...
         falta = monto_a_pagar - saldo_actual #Saldo que nos faltó
         return False,f"Saldo insuficiente. Te faltan ${falta:.2f}", saldo_actual #Saldo se mantiene igual
-
 
 "Calcula la venta de las acciones restando la comisión del broker."
 def calcular_monto_a_recibir(precio_actual, cantidad_a_vender):
@@ -56,6 +64,8 @@ def calcular_monto_a_recibir(precio_actual, cantidad_a_vender):
 def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, precio_actual):
     if not mercado_abierto(): # REGLA 1: Horario de mercado
         return False, "Mercado cerrado. Solo se permite visualización.", 0
+    if not es_precio_valido(timestamp_precio): # NUEVA REGLA: Latencia de datos
+        return False, "El precio está desactualizado. Por favor, espera a la actualización del mercado.", 0
     if simbolo_accion not in portafolio: # REGLA 2: Verificar si el usuario tiene la acción
         return False, f"No tienes acciones de {simbolo_accion} en tu portafolio.", 0
     cantidad_poseida = portafolio[simbolo_accion]['cantidad']# REGLA 3: Verificar si tiene suficientes acciones para vender
