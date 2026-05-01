@@ -1,14 +1,12 @@
 """
 Módulo de Lógica de Negocio - TradeaYa!
 Este archivo contiene los algoritmos de decisión y cálculos matemáticos.
+.Validación de Saldo: El sistema no permitirá compras si el costo total de la transacción (precio de acción x cantidad) más la comisión excede el saldo disponible en la cuenta ficticia.
+.Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada (ej. 0.5% por transacción) para simular los costos operativos de un broker real.
+.Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización.
+.Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
+.Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
 """
-
-#.Validación de Saldo: El sistema no permitirá compras si el costo total de la transacción (precio de acción x cantidad) más la comisión excede el saldo disponible en la cuenta ficticia.
-#.Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada (ej. 0.5% por transacción) para simular los costos operativos de un broker real.
-#.Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización.
-#.Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
-#.Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
-
 from datetime import datetime
 import pytz # Librería para manejar zonas horarias
 import time 
