@@ -39,19 +39,19 @@ def es_precio_valido(timestamp_precio): # Verifica si el precio fue obtenido hac
     return diferencia <= LATENCIA_MAXIMA_SEGUNDOS
 
 "Calcula el costo de las acciones más la comisión del broker."
-def calcular_monto_a_pagar(precio_actual, cantidad):
+def calcular_monto_a_pagar(precio_actual, cantidad_a_comprar):
     monto_total = precio_actual * cantidad #Total sin incluir comisión
     comision = calcular_comision(monto_total)
     return monto_total + comision
 
 
 "Validación de saldo suficiente, horario y frescura para comprar"
-def validar_transaccion_compra(saldo_actual, precio_actual, cantidad, timestamp_precio):
+def validar_transaccion_compra(saldo_actual, precio_actual, cantidad_a_comprar, timestamp_precio):
     if not mercado_abierto():
         return False, "Mercado cerrado. Solo se permite visualización.", saldo_actual, None
     if not es_precio_valido(timestamp_precio):
         return False, "Precio desactualizado. Esperando actualización.", saldo_actual, None
-    monto_a_pagar = calcular_monto_a_pagar(precio_actual, cantidad)
+    monto_a_pagar = calcular_monto_a_pagar(precio_actual, cantidad_a_comprar)
     if saldo_actual >= monto_a_pagar: #Si nos alcanza...
         nuevo_saldo = saldo_actual - monto_a_pagar #Saldo que queda después de realizar la compra
         precio_compra = precio_actual #El precio actual del momento en que compramos pasa a ser el precio al que compramos
