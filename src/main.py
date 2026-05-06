@@ -1,6 +1,6 @@
 # 1. IMPORTACIÓN: Aquí es donde conectamos las carpetas
 from backend import conexion_api  # Trabajo del Encargado BackEnd
-from logic import reglas_negocio   # Trabajo del Encargado Logic
+from logic import sesion   # Trabajo del Encargado Logic
 from frontend import interfaz      # Trabajo del Encargado FrontEnd
 
 def iniciar_programa():
