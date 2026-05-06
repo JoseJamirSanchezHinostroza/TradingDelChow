@@ -52,7 +52,7 @@ class SesionTrading:
         if exito:
             self.saldo      = nuevo_saldo
             self.portafolio = registrar_compra(self.portafolio, simbolo, cantidad_comprada, precio_compra)
-            self._registrar_en_historial("COMPRA", simbolo, cantidad_comprada, precio_compra)
+            self._registrar_en_historial("COMPRA", simbolo, cantidad_a_comprar, precio_compra)
 
         return exito, mensaje
 
@@ -74,7 +74,7 @@ class SesionTrading:
         if exito:
             self.saldo     += monto_recibido
             self.portafolio = registrar_venta(self.portafolio, simbolo, cantidad_vendida)
-            self._registrar_en_historial("VENTA", simbolo, cantidad_vendida, precio_actual)
+            self._registrar_en_historial("VENTA", simbolo, cantidad_a_vender, precio_actual)
 
         return exito, mensaje
 
