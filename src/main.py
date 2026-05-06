@@ -22,7 +22,7 @@ if __name__ == "__main__":
 
 
 
-
+"""
 main.py - Prueba de la lógica de TradeaYa! sin backend real
 Simula precios y timestamps para verificar que todo funciona.
 """
