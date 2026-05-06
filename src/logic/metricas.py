@@ -1,2 +1,0 @@
-calcular_rendimiento_portafolio(portafolio, precios_actuales)
-calcular_ganancia_perdida_total(portafolio, precios_actuales)
