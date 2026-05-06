@@ -71,7 +71,7 @@ def es_precio_valido(timestamp_precio): #'timestamp_precio' es el momento en que
 # SECCIÓN 5.1: Monto a pagar (Acciones+Comision)
 # ─────────────────────────────────────────────────────────
 def calcular_monto_a_pagar(precio_actual, cantidad_a_comprar):
-    monto_total = precio_actual * cantidad #Total sin incluir comisión
+    monto_total = precio_actual * cantidad_a_comprar #Total sin incluir comisión
     comision = calcular_comision(monto_total)
     return monto_total + comision
 
@@ -122,7 +122,7 @@ def validar_transaccion_venta(portafolio, simbolo, cantidad_a_vender, precio_act
         return False, "Mercado cerrado. Solo se permite visualización.", 0
     if not es_precio_valido(timestamp_precio):
         return False, "Precio desactualizado. Esperando actualización.", 0
-    if simbolo_accion not in portafolio:
+    if simbolo not in portafolio:
         return False, f"No tienes acciones de {simbolo} en tu portafolio.", 0
 
     cantidad_poseida = portafolio[simbolo]["cantidad"]
