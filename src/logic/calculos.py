@@ -117,15 +117,15 @@ def calcular_monto_a_recibir(precio_actual, cantidad_a_vender):
 # SECCIÓN 6.2: Verificar condiciones suficientes para vender
 # ─────────────────────────────────────────────────────────
 "Validación de portafolio, cantidad suficiente, horario y frescura del precio para venta de acciones"
-def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, precio_actual, timestamp_precio):
+def validar_transaccion_venta(portafolio, simbolo, cantidad_a_vender, precio_actual, timestamp_precio):
     if not mercado_abierto():
         return False, "Mercado cerrado. Solo se permite visualización.", 0
     if not es_precio_valido(timestamp_precio):
         return False, "Precio desactualizado. Esperando actualización.", 0
     if simbolo_accion not in portafolio:
-        return False, f"No tienes acciones de {simbolo_accion} en tu portafolio.", 0
+        return False, f"No tienes acciones de {simbolo} en tu portafolio.", 0
 
-    cantidad_poseida = portafolio[simbolo_accion]["cantidad"]
+    cantidad_poseida = portafolio[simbolo]["cantidad"]
     if cantidad_a_vender > cantidad_poseida:
         return False, f"No puedes vender {cantidad_a_vender}. Solo posees {cantidad_poseida}.", 0
 
