@@ -17,7 +17,7 @@ def crear_portafolio():
 
 
 # ─────────────────────────────────────────────────────────
-# SECCIÓN 2: Registrar compra
+# SECCIÓN 2: Registrar compra en el portafolio
 # ─────────────────────────────────────────────────────────
 
 def registrar_compra(portafolio, simbolo, cantidad, precio_compra):
@@ -34,16 +34,16 @@ def registrar_compra(portafolio, simbolo, cantidad, precio_compra):
     if simbolo not in portafolio:
         # CASO A: primera vez que compras esta acción
         portafolio[simbolo] = {
-            "cantidad": cantidad,
+            "cantidad": cantidad_comprada,
             "precio_compra_promedio": precio_compra
         }
     else:
         # CASO B: ya tienes esta acción, recalcula el promedio
-        cant_actual   = portafolio[simbolo]["cantidad"]
+        cantidad_poseida   = portafolio[simbolo]["cantidad"]
         prom_actual   = portafolio[simbolo]["precio_compra_promedio"]
 
-        nueva_cantidad = cant_actual + cantidad
-        nuevo_promedio = ((cant_actual * prom_actual) + (cantidad * precio_compra)) / nueva_cantidad
+        nueva_cantidad = cantidad_poseida + cantidad_comprada
+        nuevo_promedio = ((cantidad_poseida * prom_actual) + (cantidad_comprada * precio_compra)) / nueva_cantidad
 
         portafolio[simbolo]["cantidad"]              = nueva_cantidad
         portafolio[simbolo]["precio_compra_promedio"] = round(nuevo_promedio, 4)
