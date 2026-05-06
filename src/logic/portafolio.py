@@ -20,7 +20,7 @@ def crear_portafolio():
 # SECCIÓN 2: Registrar compra en el portafolio
 # ─────────────────────────────────────────────────────────
 
-def registrar_compra(portafolio, simbolo, cantidad, precio_compra):
+def registrar_compra(portafolio, simbolo, cantidad_comprada, precio_compra):
     """
     Actualiza el portafolio después de una compra exitosa.
 
@@ -66,9 +66,9 @@ def registrar_venta(portafolio, simbolo, cantidad_vendida):
     if simbolo not in portafolio:
         return portafolio  # No debería pasar si validaste antes, pero por seguridad
 
-    cant_actual = portafolio[simbolo]["cantidad"]
+    cantidad_poseida = portafolio[simbolo]["cantidad"]
 
-    if cantidad_vendida >= cant_actual:
+    if cantidad_vendida >= cantidad_poseida:
         # CASO B: vendió todo, elimina la posición
         del portafolio[simbolo]
     else:
