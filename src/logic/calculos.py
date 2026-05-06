@@ -130,5 +130,6 @@ def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, pre
         return False, f"No puedes vender {cantidad_a_vender}. Solo posees {cantidad_poseida}.", 0
 
     monto_a_recibir = calcular_monto_a_recibir(precio_actual, cantidad_a_vender)
+    cantidad_vendida=cantidad_a_vender
     return True, f"Venta exitosa. Recibes: ${monto_a_recibir:.2f}", monto_a_recibir  
 
