@@ -89,6 +89,7 @@ def validar_transaccion_compra(saldo_actual, precio_actual, cantidad_a_comprar, 
     if saldo_actual >= monto_a_pagar: #Si nos alcanza...
         nuevo_saldo = saldo_actual - monto_a_pagar #Saldo que queda después de realizar la compra
         precio_compra = precio_actual #El precio actual del momento en que compramos pasa a ser el precio al que compramos
+        cantidad_comprada=cantidad_a_comprar
         return True, f"Compra exitosa. Nuevo saldo: ${nuevo_saldo:.2f}", nuevo_saldo, precio_compra
     else: #Si nos falta...
         falta = monto_a_pagar - saldo_actual #Saldo que nos faltó
