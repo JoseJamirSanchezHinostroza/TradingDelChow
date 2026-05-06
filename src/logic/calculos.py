@@ -1,24 +1,43 @@
 """
 Módulo de Lógica de Negocio - TradeaYa!
-Se implementarán las siguientes reglas en el proyecto, de manera que puedan asegurar el correcto funcionamiento del mismo.
-.Validación de Saldo: El sistema no permitirá compras si el costo total de la transacción (precio de acción x cantidad) más la comisión excede el saldo disponible en la cuenta ficticia.
-.Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada (0.5% por transacción) para simular los costos operativos de un broker real.
-.Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario,
-el sistema solo permitirá visualización. El sistema, sin embargo, podría permitir almacenar órdenes de compra para ejecutarlas tan pronto como el mercado vuelva a abrirse.
-.Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
-.Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
-.Ejecución de Órdenes: El programa podría enseñar al usuario a ordenar la compra de acciones si es que el precio va debajo o sobre límites que se establecieron en la misma orden.
-.Gestión de riesgo: Si la Ejecución de órdenes no está activada, cuando el precio cae por debajo de un cierto límite, el sistema vendería automáticamente para proteger capital y tiraría
-una advertencia respecto a esto. En contrapunto, si sube por encima de un porcentaje, el sistema empezará a sugerir vender para obtener ganancias, y vendería automáticamente si empieza a
-caer para asegurar ganancias.
+
+.-Validación de Saldo: El sistema no permitirá compras si el costo total de la transacción
+(precio de acción x cantidad) más la comisión excede el saldo disponible en la cuenta ficticia.
+
+.-Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada
+(0.5% por transacción) para simular los costos operativos de un broker real.
+
+.-Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto
+(Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización.
+El sistema, sin embargo, podría permitir almacenar órdenes de compra para ejecutarlas tan pronto como el mercado vuelva a abrirse.
+
+.-Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y
+en cantidades iguales o menores a las que posee.
+
+.-Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida
+(ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
+
+.-Ejecución de Órdenes: El programa podría enseñar al usuario a ordenar la compra de acciones si es que
+el precio va debajo o sobre límites que se establecieron en la misma orden.
+
+.-Gestión de riesgo: Si la Ejecución de órdenes no está activada, cuando el precio cae por debajo de un cierto límite,
+el sistema vendería automáticamente para proteger capital y tiraría una advertencia respecto a esto.
+En contrapunto, si sube por encima de un porcentaje, el sistema empezará a sugerir vender para obtener ganancias,
+y vendería automáticamente si empieza a caer para asegurar ganancias.
 """
-from datetime import datetime
-import pytz # Librería para manejar zonas horarias
-import time 
 
-LATENCIA_MAXIMA_SEGUNDOS = 60 # Regla de negocio: 60 segundos máximo
-COMISION_PORCENTAJE = 0.005  # 0.5%
 
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 1: Librerías
+# ─────────────────────────────────────────────────────────
+from datetime import datetime #Manipulación de fechas y horas
+import pytz # Zonas horarias
+import time #Medir tiempos
+
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 2: Verificar si el mercado E.E.U.U. está abierto
+# ─────────────────────────────────────────────────────────
 "Verifica si el mercado de EE.UU. está abierto (Lunes-Viernes, 9:30 AM - 4:00 PM EST)."
 def mercado_abierto():
     tz_ny = pytz.timezone('America/New_York') # Definimos la zona horaria de Nueva York
@@ -29,22 +48,38 @@ def mercado_abierto():
     esta_en_horario = hora_apertura <= ahora_ny <= hora_cierre
     return es_dia_semana and esta_en_horario
 
-"Comisión 0.5% del broker"
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 3: Calculo de comisión del broker (0.5%)
+# ─────────────────────────────────────────────────────────
+COMISION_PORCENTAJE = 0.005
 def calcular_comision(monto_total):  
     return monto_total * COMISION_PORCENTAJE
 
-def es_precio_valido(timestamp_precio): # Verifica si el precio fue obtenido hace menos de 60 segundos.
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 4: Verificar que el precio es válid
+# ─────────────────────────────────────────────────────────
+LATENCIA_MAXIMA_SEGUNDOS = 60 # Regla de negocio: 60 segundos máximo
+
+def es_precio_valido(timestamp_precio):
 #'timestamp_precio' es el momento en que el Backend trajo el dato.
     diferencia = time.time() - timestamp_precio
     return diferencia <= LATENCIA_MAXIMA_SEGUNDOS
 
-"Calcula el costo de las acciones más la comisión del broker."
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 5.1: Monto a pagar (Acciones+Comision)
+# ─────────────────────────────────────────────────────────
 def calcular_monto_a_pagar(precio_actual, cantidad_a_comprar):
     monto_total = precio_actual * cantidad #Total sin incluir comisión
     comision = calcular_comision(monto_total)
     return monto_total + comision
 
 
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 5.2: Verificar condiciones suficientes para comprar
+# ─────────────────────────────────────────────────────────
 "Validación de saldo suficiente, horario y frescura para comprar"
 def validar_transaccion_compra(saldo_actual, precio_actual, cantidad_a_comprar, timestamp_precio):
     if not mercado_abierto():
@@ -60,12 +95,27 @@ def validar_transaccion_compra(saldo_actual, precio_actual, cantidad_a_comprar, 
         falta = monto_a_pagar - saldo_actual #Saldo que nos faltó
         return False,f"Saldo insuficiente. Te faltan ${falta:.2f}", saldo_actual, None #Saldo se mantiene igual
 
-"Calcula la venta de las acciones restando la comisión del broker."
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 5.3: Rendimiento de inversion
+# ─────────────────────────────────────────────────────────
+def calcular_rendimiento(precio_compra, precio_actual):
+    rendimiento = ((precio_actual - precio_compra) / precio_compra) * 100
+    return round(rendimiento, 2)
+
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 6.1: Verificar monto a recibir (Acciones-Comision)
+# ─────────────────────────────────────────────────────────
 def calcular_monto_a_recibir(precio_actual, cantidad_a_vender):
     monto_total = precio_actual * cantidad_a_vender #Total sin incluir comisión
     comision = calcular_comision(monto_total)
     return monto_total - comision
 
+
+# ─────────────────────────────────────────────────────────
+# SECCIÓN 6.2: Verificar condiciones suficientes para vender
+# ─────────────────────────────────────────────────────────
 "Validación de portafolio, cantidad suficiente, horario y frescura del precio para venta de acciones"
 def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, precio_actual, timestamp_precio):
     if not mercado_abierto():
@@ -82,7 +132,3 @@ def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, pre
     monto_a_recibir = calcular_monto_a_recibir(precio_actual, cantidad_a_vender)
     return True, f"Venta exitosa. Recibes: ${monto_a_recibir:.2f}", monto_a_recibir  
 
-"Calcula el porcentaje de ganancia o pérdida de una inversión."
-def calcular_rendimiento(precio_compra, precio_actual):
-    rendimiento = ((precio_actual - precio_compra) / precio_compra) * 100
-    return round(rendimiento, 2)
