@@ -124,7 +124,7 @@ def validar_transaccion_venta(portafolio, simbolo_accion, cantidad_a_vender, pre
     if simbolo_accion not in portafolio:
         return False, f"No tienes acciones de {simbolo_accion} en tu portafolio.", 0
 
-    cantidad_poseida = portafolio[simbolo_accion]['cantidad']
+    cantidad_poseida = portafolio[simbolo_accion]["cantidad"]
     if cantidad_a_vender > cantidad_poseida:
         return False, f"No puedes vender {cantidad_a_vender}. Solo posees {cantidad_poseida}.", 0
 
