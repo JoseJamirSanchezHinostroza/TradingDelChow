@@ -62,8 +62,7 @@ def calcular_comision(monto_total):
 # ─────────────────────────────────────────────────────────
 LATENCIA_MAXIMA_SEGUNDOS = 60 # Regla de negocio: 60 segundos máximo
 
-def es_precio_valido(timestamp_precio):
-#'timestamp_precio' es el momento en que el Backend trajo el dato.
+def es_precio_valido(timestamp_precio): #'timestamp_precio' es el momento en que el Backend trajo el dato.
     diferencia = time.time() - timestamp_precio
     return diferencia <= LATENCIA_MAXIMA_SEGUNDOS
 
