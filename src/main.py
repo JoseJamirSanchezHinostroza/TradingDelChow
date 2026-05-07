@@ -9,7 +9,7 @@ import os
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src", "logic"))
 
-from sesion import SesionTrading
+from logic.sesion import SesionTrading
 
 # ── Simulación de datos que vendría del backend ──────────────
 precios_falsos    = {"AAPL": 195.30, "TSLA": 185.50, "NVDA": 430.00}
