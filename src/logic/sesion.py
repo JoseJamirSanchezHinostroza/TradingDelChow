@@ -7,8 +7,8 @@ El frontend solo necesita hablar con este archivo.
 # ─────────────────────────────────────────────────────────
 # SECCIÓN 1: Importar las funciones importantes
 # ─────────────────────────────────────────────────────────
-from calculos    import validar_transaccion_compra, validar_transaccion_venta, calcular_rendimiento
-from portafolio  import (crear_portafolio, registrar_compra, registrar_venta,
+from logic.calculos    import validar_transaccion_compra, validar_transaccion_venta, calcular_rendimiento
+from logic.portafolio  import (crear_portafolio, registrar_compra, registrar_venta,
                          obtener_posicion, calcular_valor_portafolio)
 
 
