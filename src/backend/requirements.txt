@@ -1,0 +1,11 @@
+# Conexión con el Mercado
+yfinance
+alpaca-trade-api
+
+# Manejo de Datos y Reportes
+pandas
+openpyxl
+
+# Utilidades
+pytz
+python-dotenv
