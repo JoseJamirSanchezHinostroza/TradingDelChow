@@ -38,7 +38,7 @@ with col1:
     btn_col1, btn_col2 = st.columns(2)
     with btn_col1:
         if st.button("🟩 COMPRAR", use_container_width=True):
-            if no simbolo:
+            if not simbolo:
                 st.warning("Escribe un símbolo primero.")
             else:
                 # LLAMAMOS A TU LÓGICA
@@ -50,7 +50,7 @@ with col1:
     
     with btn_col2:
         if st.button("🟥 VENDER", use_container_width=True):
-            if no simbolo:
+            if not simbolo:
                 st.warning("Escribe un símbolo primero.")
             else:
                 # LLAMAMOS A TU LÓGICA
