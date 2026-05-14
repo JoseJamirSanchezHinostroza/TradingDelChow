@@ -42,9 +42,11 @@ import time #Medir tiempos
 def mercado_abierto():
     tz_ny = pytz.timezone('America/New_York') # Definimos la zona horaria de Nueva York
     ahora_ny = datetime.now(tz_ny)
-    es_dia_semana = ahora_ny.weekday() < 5 # 1. Validar que sea día de semana (0=Lunes, 4=Viernes)
-    hora_apertura = ahora_ny.replace(hour=9, minute=30, second=0, microsecond=0) # 2. Validar el rango de horas
-    hora_cierre = ahora_ny.replace(hour=16, minute=0, second=0, microsecond=0)
+    es_dia_semana = ahora_ny.weekday() < 7 # (CAMBIAR 7-->5)1. Validar que sea día de semana (0=Lunes, 4=Viernes)
+    hora_apertura = ahora_ny.replace(hour=1, minute=0, second=0, microsecond=0) # 2. Validar el rango de horas
+    #CAMBIAR A hour=9, minute=30, second=0, microsecond=0
+    hora_cierre = ahora_ny.replace(hour=23, minute=59, second=59, microsecond=0)
+    #CAMBIAR A hour=16, minute=0, second=0, microsecond=0
     esta_en_horario = hora_apertura <= ahora_ny <= hora_cierre
     return es_dia_semana and esta_en_horario
 
