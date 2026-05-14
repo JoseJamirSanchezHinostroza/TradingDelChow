@@ -3,6 +3,9 @@ import time
 import sys
 import os
 
+# 1.- Importación de los datos de Alpaca
+# from backend.alpaca_api import (funcion necesaria)
+
 # Truco para que Streamlit encuentre tu carpeta 'logic' sin errores de rutas
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from logic.sesion import SesionTrading
