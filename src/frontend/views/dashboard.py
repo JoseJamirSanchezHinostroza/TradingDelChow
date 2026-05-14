@@ -92,13 +92,19 @@ def mostrar_pantalla_dashboard():
                         st.error("Saldo insuficiente.")
         with c2:
             if st.button("🟥 VENDER", use_container_width=True):
-                # Por ahora la venta solo limpia memoria, 
-                # luego podemos crear 'actualizar_saldo_y_venta' en DB
+                # 1. Intentamos vender en la memoria primero (esto calcula comisiones y revisa si tienes las acciones)
                 exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time())
+                
                 if exito: 
-                    st.success(msg)
-                    st.rerun()
-                else: st.error(msg)
+                    # 2. Si la memoria dice que sí se pudo, GUARDAMOS en la Base de Datos
+                    if db.actualizar_saldo_y_venta(u_id, simbolo, cantidad, sesion.saldo):
+                        st.success(f"Venta registrada en la Base de Datos. {msg}")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Error al guardar la venta en la base de datos.")
+                else: 
+                    st.error(msg)
 
     with col_der:
         st.subheader("📊 Mi Portafolio Real")
