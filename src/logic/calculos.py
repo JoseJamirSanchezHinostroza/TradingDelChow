@@ -100,8 +100,13 @@ def validar_transaccion_compra(saldo_actual, precio_actual, cantidad_a_comprar, 
 # SECCIÓN 5.3: Rendimiento de inversion
 # ─────────────────────────────────────────────────────────
 def calcular_rendimiento(precio_compra, precio_actual):
+    # --- ESCUDO CONTRA DIVISIÓN POR CERO ---
+    if precio_compra == 0 or precio_compra == 0.0:
+        return 0.0  # Si no hay precio de compra registrado, el rendimiento es 0%
+    
+    # Si todo está bien, hacemos el cálculo normal
     rendimiento = ((precio_actual - precio_compra) / precio_compra) * 100
-    return round(rendimiento, 2)
+    return rendimiento
 
 
 # ─────────────────────────────────────────────────────────

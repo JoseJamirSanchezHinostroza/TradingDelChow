@@ -67,3 +67,35 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error en DB: {e}")
             return False
+
+    def obtener_portafolio(self, usuario_id):
+        """Recupera todas las acciones que posee un usuario con la estructura correcta."""
+        with self.conectar() as conn:
+            cursor = conn.cursor()
+            # Traemos todos los datos de la tabla portafolio
+            cursor.execute("SELECT * FROM portafolio WHERE usuario_id = ?", (usuario_id,))
+            filas = cursor.fetchall()
+            
+            # Obtenemos los nombres de las columnas para evitar errores
+            columnas = [descripcion[0] for descripcion in cursor.description]
+            
+            portafolio_armado = {}
+            for fila in filas:
+                # Convertimos la fila en un diccionario fácil de leer
+                datos_fila = dict(zip(columnas, fila))
+                
+                simbolo = datos_fila.get('simbolo')
+                cantidad = datos_fila.get('cantidad', 0)
+                
+                # Buscamos la columna del precio (por si tu compañero la llamó distinto)
+                precio_prom = datos_fila.get('precio_compra_promedio', 
+                              datos_fila.get('precio_compra', 
+                              datos_fila.get('precio', 0.0)))
+                
+                # Armamos el diccionario EXACTAMENTE como lo espera sesion.py
+                portafolio_armado[simbolo] = {
+                    "cantidad": cantidad,
+                    "precio_compra_promedio": precio_prom
+                }
+                
+            return portafolio_armado

@@ -7,6 +7,20 @@ def mostrar_pantalla_dashboard():
     sesion = st.session_state.sesion
     motor = st.session_state.motor
     loader = st.session_state.loader
+    db = st.session_state.db
+    u_id = st.session_state.usuario_id
+
+    # --- ⚡ SINCRONIZACIÓN CON BASE DE DATOS ⚡ ---
+    # Esto es vital: cada vez que el dashboard carga, traemos los datos reales de la DB
+    if 'db_sincronizada' not in st.session_state:
+        # Traemos el saldo real del usuario
+        with db.conectar() as conn:
+            res = conn.execute("SELECT saldo FROM usuarios WHERE id = ?", (u_id,)).fetchone()
+            if res: sesion.saldo = res[0]
+        
+        # Traemos el portafolio real
+        sesion.portafolio = db.obtener_portafolio(u_id)
+        st.session_state.db_sincronizada = True
 
     # --- BARRA LATERAL (PERFIL) ---
     st.sidebar.title("Mi Perfil")
@@ -15,6 +29,7 @@ def mostrar_pantalla_dashboard():
     
     if st.sidebar.button("Cerrar Sesión"):
         st.session_state.usuario_id = None
+        if 'db_sincronizada' in st.session_state: del st.session_state.db_sincronizada
         st.rerun() # Esto nos devolverá al Login
 
     # --- PANTALLA PRINCIPAL ---
@@ -56,20 +71,34 @@ def mostrar_pantalla_dashboard():
                 else:
                     st.error("Símbolo no encontrado o error de conexión.")
 
-        # Botonera
+        # Botonera conectada a DB
         c1, c2 = st.columns(2)
         with c1:
             if st.button("🟩 COMPRAR", use_container_width=True):
                 if precio_actual > 0:
-                    exito, msg = sesion.comprar(simbolo, cantidad, precio_actual, time.time())
-                    if exito: st.success(msg)
-                    else: st.error(msg)
+                    costo_total = precio_actual * cantidad
+                    if sesion.saldo >= costo_total:
+                        nuevo_saldo = sesion.saldo - costo_total
+                        # GUARDAR EN DB (Vital para que no se borre)
+                        if db.actualizar_saldo_y_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo):
+                            # Si la DB aceptó, actualizamos la memoria local
+                            sesion.comprar(simbolo, cantidad, precio_actual, time.time())
+                            st.success(f"Compra de {simbolo} guardada en base de datos.")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("Error al guardar en la base de datos.")
+                    else:
+                        st.error("Saldo insuficiente.")
         with c2:
             if st.button("🟥 VENDER", use_container_width=True):
-                if precio_actual > 0:
-                    exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time())
-                    if exito: st.success(msg)
-                    else: st.error(msg)
+                # Por ahora la venta solo limpia memoria, 
+                # luego podemos crear 'actualizar_saldo_y_venta' en DB
+                exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time())
+                if exito: 
+                    st.success(msg)
+                    st.rerun()
+                else: st.error(msg)
 
     with col_der:
         st.subheader("📊 Mi Portafolio Real")
