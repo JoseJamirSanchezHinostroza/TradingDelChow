@@ -68,7 +68,7 @@ class DatabaseManager:
             print(f"Error en DB: {e}")
             return False
 
-    def obtener_portafolio(self, usuario_id):
+    def obtener_portafolio(self, usuario_id): #AÑADIDA POR JAMIR PARA QUE EL PORTAFOLIO DEL USUARIO SE GUARDE EN LA DB Y SEA RECUPERABLE EN CADA SESIÓN
         """Recupera todas las acciones que posee un usuario con la estructura correcta."""
         with self.conectar() as conn:
             cursor = conn.cursor()
