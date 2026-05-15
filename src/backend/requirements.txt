@@ -10,3 +10,7 @@ openpyxl
 pytz
 python-dotenv
 streamlit
+websockets>=12.0
+watchdog
+setuptools
+wheel
