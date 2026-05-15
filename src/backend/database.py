@@ -1,153 +1,233 @@
+"""
+backend/database.py - TradeaYa!
+Capa de acceso a datos: usuarios, portafolio y transacciones.
+Toda operación con SQLite pasa por aquí.
+"""
+
 import sqlite3
 from datetime import datetime
 
-class DatabaseManager:
-    def __init__(self, db_name="tradeaya.db"):
-        self.db_name = db_name
-        self.crear_tablas()
 
-    def conectar(self):
-        # Timeout para evitar el error 'database is locked'
+class DatabaseManager:
+    """Gestiona la conexión y operaciones sobre la base de datos SQLite."""
+
+    def __init__(self, db_name: str = "tradeaya.db") -> None:
+        self.db_name = db_name
+        self._crear_tablas()
+
+    # ─────────────────────────────────────────────────────────
+    # CONEXIÓN
+    # ─────────────────────────────────────────────────────────
+
+    def conectar(self) -> sqlite3.Connection:
+        """Devuelve una conexión con timeout para evitar 'database is locked'."""
         return sqlite3.connect(self.db_name, timeout=10)
 
-    def crear_tablas(self):
-        """Crea la estructura necesaria para usuarios y sus activos."""
-        with self.conectar() as conn:
-            cursor = conn.cursor()
-            # Tabla de Usuarios con Contraseña
-            cursor.execute('''CREATE TABLE IF NOT EXISTS usuarios 
-                (id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT, email TEXT UNIQUE, 
-                 password TEXT, saldo REAL DEFAULT 100000.0)''')
-            
-            # Tabla de Transacciones (Historial)
-            cursor.execute('''CREATE TABLE IF NOT EXISTS transacciones 
-                (id INTEGER PRIMARY KEY AUTOINCREMENT, usuario_id INTEGER, simbolo TEXT, 
-                cantidad INTEGER, precio REAL, tipo TEXT, fecha TEXT)''')
-            
-            # Tabla de Portafolio (Lo que posee cada uno)
-            cursor.execute('''CREATE TABLE IF NOT EXISTS portafolio 
-                (usuario_id INTEGER, simbolo TEXT, cantidad INTEGER,
-                 precio_compra_promedio REAL,
-                PRIMARY KEY(usuario_id, simbolo))''')
-            conn.commit()
+    # ─────────────────────────────────────────────────────────
+    # INICIALIZACIÓN DE TABLAS
+    # ─────────────────────────────────────────────────────────
 
-    def registrar_usuario(self, nombre, email, password):
+    def _crear_tablas(self) -> None:
+        """Crea las tablas si no existen. Se llama una sola vez al iniciar."""
+        with self.conectar() as conn:
+            conn.executescript("""
+                CREATE TABLE IF NOT EXISTS usuarios (
+                    id       INTEGER PRIMARY KEY AUTOINCREMENT,
+                    nombre   TEXT    NOT NULL,
+                    email    TEXT    UNIQUE NOT NULL,
+                    password TEXT    NOT NULL,
+                    saldo    REAL    DEFAULT 100000.0
+                );
+
+                CREATE TABLE IF NOT EXISTS transacciones (
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    usuario_id INTEGER NOT NULL,
+                    simbolo    TEXT    NOT NULL,
+                    cantidad   INTEGER NOT NULL,
+                    precio     REAL    NOT NULL,
+                    tipo       TEXT    NOT NULL,
+                    fecha      TEXT    NOT NULL
+                );
+
+                CREATE TABLE IF NOT EXISTS portafolio (
+                    usuario_id             INTEGER NOT NULL,
+                    simbolo                TEXT    NOT NULL,
+                    cantidad               INTEGER NOT NULL,
+                    precio_compra_promedio REAL    NOT NULL,
+                    PRIMARY KEY (usuario_id, simbolo)
+                );
+            """)
+
+    # ─────────────────────────────────────────────────────────
+    # USUARIOS
+    # ─────────────────────────────────────────────────────────
+
+    def registrar_usuario(self, nombre: str, email: str, password: str) -> tuple[bool, str]:
+        """Crea un nuevo usuario. Devuelve (éxito, mensaje)."""
         try:
             with self.conectar() as conn:
-                cursor = conn.cursor()
-                cursor.execute('INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)', 
-                               (nombre, email, password))
-                conn.commit()
-            return True, f"✅ Usuario {nombre} registrado con éxito."
+                conn.execute(
+                    "INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)",
+                    (nombre, email, password),
+                )
+            return True, f"✅ Usuario '{nombre}' registrado con éxito."
         except sqlite3.IntegrityError:
             return False, "❌ El correo ya está registrado."
 
-    def verificar_login(self, email, password):
-        """Devuelve los datos del usuario si las credenciales coinciden."""
+    def verificar_login(self, email: str, password: str) -> tuple | None:
+        """Devuelve (id, nombre, saldo) si las credenciales son correctas, None si no."""
         with self.conectar() as conn:
-            cursor = conn.cursor()
-            return cursor.execute("SELECT id, nombre, saldo FROM usuarios WHERE email=? AND password=?", 
-                                  (email, password)).fetchone()
+            return conn.execute(
+                "SELECT id, nombre, saldo FROM usuarios WHERE email = ? AND password = ?",
+                (email, password),
+            ).fetchone()
 
-    def obtener_portafolio(self, usuario_id): #AÑADIDA POR JAMIR PARA QUE EL PORTAFOLIO DEL USUARIO SE GUARDE EN LA DB Y SEA RECUPERABLE EN CADA SESIÓN
-        """Recupera todas las acciones que posee un usuario con la estructura correcta."""
+    # ─────────────────────────────────────────────────────────
+    # PORTAFOLIO
+    # ─────────────────────────────────────────────────────────
+
+    def obtener_portafolio(self, usuario_id: int) -> dict:
+        """
+        Recupera el portafolio completo del usuario desde la DB.
+        Devuelve: { "AAPL": {"cantidad": 10, "precio_compra_promedio": 195.30}, ... }
+        """
         with self.conectar() as conn:
-            cursor = conn.cursor()
-            # Traemos todos los datos de la tabla portafolio
-            cursor.execute("SELECT * FROM portafolio WHERE usuario_id = ?", (usuario_id,))
-            filas = cursor.fetchall()
-            
-            # Obtenemos los nombres de las columnas para evitar errores
-            columnas = [descripcion[0] for descripcion in cursor.description]
-            
-            portafolio_armado = {}
-            for fila in filas:
-                # Convertimos la fila en un diccionario fácil de leer
-                datos_fila = dict(zip(columnas, fila))
-                
-                simbolo = datos_fila.get('simbolo')
-                cantidad = datos_fila.get('cantidad', 0)
-                
-                # Buscamos la columna del precio (por si tu compañero la llamó distinto)
-                precio_prom = datos_fila.get('precio_compra_promedio', 
-                              datos_fila.get('precio_compra', 
-                              datos_fila.get('precio', 0.0)))
-                
-                # Armamos el diccionario EXACTAMENTE como lo espera sesion.py
-                portafolio_armado[simbolo] = {
-                    "cantidad": cantidad,
-                    "precio_compra_promedio": precio_prom
-                }
-                
-            return portafolio_armado
+            filas = conn.execute(
+                "SELECT simbolo, cantidad, precio_compra_promedio FROM portafolio WHERE usuario_id = ?",
+                (usuario_id,),
+            ).fetchall()
 
-    
-    def actualizar_saldo_y_compra(self, usuario_id, simbolo, cantidad_comprada, precio_compra, nuevo_saldo):
-        """Versión Inteligente: Actualiza saldo y calcula precio promedio ponderado."""
+        return {
+            simbolo: {"cantidad": cantidad, "precio_compra_promedio": precio_prom}
+            for simbolo, cantidad, precio_prom in filas
+        }
+
+    # ─────────────────────────────────────────────────────────
+    # COMPRA
+    # ─────────────────────────────────────────────────────────
+
+    def guardar_compra(
+        self,
+        usuario_id: int,
+        simbolo: str,
+        cantidad_comprada: int,
+        precio_compra: float,
+        nuevo_saldo: float,
+    ) -> bool:
+        """
+        Atomicamente: actualiza saldo, registra transacción y actualiza portafolio
+        con precio promedio ponderado.
+        """
         try:
             with self.conectar() as conn:
-                cursor = conn.cursor()
-                # 1. Actualizar Saldo
-                cursor.execute("UPDATE usuarios SET saldo = ? WHERE id = ?", (nuevo_saldo, usuario_id))
-                
-                # 2. Registrar Transacción
-                fecha = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                cursor.execute("INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) VALUES (?,?,?,?,'COMPRA',?)",
-                               (usuario_id, simbolo, cantidad_comprada, precio_compra, fecha))
+                # 1. Actualizar saldo
+                conn.execute(
+                    "UPDATE usuarios SET saldo = ? WHERE id = ?",
+                    (nuevo_saldo, usuario_id),
+                )
 
-                # 3. Lógica de Portafolio (Promedio)
-                cursor.execute("SELECT cantidad, precio_compra_promedio FROM portafolio WHERE usuario_id = ? AND simbolo = ?", (usuario_id, simbolo))
-                resultado = cursor.fetchone()
-                
-                if resultado:
-                    cantidad_actual, precio_anterior = resultado
-                    precio_anterior = precio_anterior if precio_anterior is not None else 0.0
-                    
-                    nueva_cantidad = cantidad_actual + cantidad_comprada
-                    costo_viejo = cantidad_actual * precio_anterior
-                    costo_nuevo = cantidad_comprada * precio_compra
-                    nuevo_precio_promedio = (costo_viejo + costo_nuevo) / nueva_cantidad
-                    
-                    cursor.execute("UPDATE portafolio SET cantidad = ?, precio_compra_promedio = ? WHERE usuario_id = ? AND simbolo = ?", 
-                                   (nueva_cantidad, nuevo_precio_promedio, usuario_id, simbolo))
+                # 2. Registrar transacción
+                conn.execute(
+                    "INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
+                    "VALUES (?, ?, ?, ?, 'COMPRA', ?)",
+                    (usuario_id, simbolo, cantidad_comprada, precio_compra,
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                )
+
+                # 3. Actualizar portafolio (precio promedio ponderado)
+                fila = conn.execute(
+                    "SELECT cantidad, precio_compra_promedio FROM portafolio WHERE usuario_id = ? AND simbolo = ?",
+                    (usuario_id, simbolo),
+                ).fetchone()
+
+                if fila:
+                    cant_actual, precio_anterior = fila
+                    nueva_cantidad = cant_actual + cantidad_comprada
+                    nuevo_promedio = (
+                        (cant_actual * precio_anterior) + (cantidad_comprada * precio_compra)
+                    ) / nueva_cantidad
+                    conn.execute(
+                        "UPDATE portafolio SET cantidad = ?, precio_compra_promedio = ? "
+                        "WHERE usuario_id = ? AND simbolo = ?",
+                        (nueva_cantidad, nuevo_promedio, usuario_id, simbolo),
+                    )
                 else:
-                    cursor.execute("INSERT INTO portafolio (usuario_id, simbolo, cantidad, precio_compra_promedio) VALUES (?, ?, ?, ?)", 
-                                   (usuario_id, simbolo, cantidad_comprada, precio_compra))
-                conn.commit()
-                return True
+                    conn.execute(
+                        "INSERT INTO portafolio (usuario_id, simbolo, cantidad, precio_compra_promedio) "
+                        "VALUES (?, ?, ?, ?)",
+                        (usuario_id, simbolo, cantidad_comprada, precio_compra),
+                    )
+            return True
         except Exception as e:
-            print(f"Error en compra: {e}")
-            return False
-            
-    def actualizar_saldo_y_venta(self, usuario_id, simbolo, cantidad_vendida, nuevo_saldo):
-        """Suma el dinero de la venta al saldo y descuenta/borra las acciones del portafolio."""
-        try:
-            with self.conectar() as conn:
-                cursor = conn.cursor()
-                
-                # 1. Guardar el nuevo saldo (con la ganancia de la venta)
-                cursor.execute("UPDATE usuarios SET saldo = ? WHERE id = ?", (nuevo_saldo, usuario_id))
-                
-                # 2. Ver cuántas acciones tiene actualmente
-                cursor.execute("SELECT cantidad FROM portafolio WHERE usuario_id = ? AND simbolo = ?", (usuario_id, simbolo))
-                resultado = cursor.fetchone()
-                
-                if resultado:
-                    cantidad_actual = resultado[0]
-                    
-                    if cantidad_actual <= cantidad_vendida:
-                        # Si vendió todo lo que tenía, borramos la acción de su registro
-                        cursor.execute("DELETE FROM portafolio WHERE usuario_id = ? AND simbolo = ?", (usuario_id, simbolo))
-                    else:
-                        # Si vendió solo una parte, actualizamos la cantidad
-                        nueva_cantidad = cantidad_actual - cantidad_vendida
-                        cursor.execute("UPDATE portafolio SET cantidad = ? WHERE usuario_id = ? AND simbolo = ?", (nueva_cantidad, usuario_id, simbolo))
-                
-                conn.commit()
-                return True
-        except Exception as e:
-            print(f"Error crítico al guardar la venta: {e}")
+            print(f"❌ Error al guardar compra: {e}")
             return False
 
-    
-    
+    # ─────────────────────────────────────────────────────────
+    # VENTA
+    # ─────────────────────────────────────────────────────────
+
+    def guardar_venta(
+        self,
+        usuario_id: int,
+        simbolo: str,
+        cantidad_vendida: int,
+        precio_venta: float,
+        nuevo_saldo: float,
+    ) -> bool:
+        """
+        Atomicamente: actualiza saldo, registra transacción y reduce/elimina posición.
+        """
+        try:
+            with self.conectar() as conn:
+                # 1. Actualizar saldo
+                conn.execute(
+                    "UPDATE usuarios SET saldo = ? WHERE id = ?",
+                    (nuevo_saldo, usuario_id),
+                )
+
+                # 2. Registrar transacción
+                conn.execute(
+                    "INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
+                    "VALUES (?, ?, ?, ?, 'VENTA', ?)",
+                    (usuario_id, simbolo, cantidad_vendida, precio_venta,
+                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                )
+
+                # 3. Actualizar portafolio
+                fila = conn.execute(
+                    "SELECT cantidad FROM portafolio WHERE usuario_id = ? AND simbolo = ?",
+                    (usuario_id, simbolo),
+                ).fetchone()
+
+                if fila:
+                    cantidad_restante = fila[0] - cantidad_vendida
+                    if cantidad_restante <= 0:
+                        conn.execute(
+                            "DELETE FROM portafolio WHERE usuario_id = ? AND simbolo = ?",
+                            (usuario_id, simbolo),
+                        )
+                    else:
+                        conn.execute(
+                            "UPDATE portafolio SET cantidad = ? WHERE usuario_id = ? AND simbolo = ?",
+                            (cantidad_restante, usuario_id, simbolo),
+                        )
+            return True
+        except Exception as e:
+            print(f"❌ Error al guardar venta: {e}")
+            return False
+
+    # ─────────────────────────────────────────────────────────
+    # HISTORIAL
+    # ─────────────────────────────────────────────────────────
+
+    def obtener_historial(self, usuario_id: int) -> list[tuple]:
+        """
+        Devuelve las transacciones del usuario ordenadas por fecha descendente.
+        Cada fila: (simbolo, tipo, cantidad, precio, fecha)
+        """
+        with self.conectar() as conn:
+            return conn.execute(
+                "SELECT simbolo, tipo, cantidad, precio, fecha "
+                "FROM transacciones WHERE usuario_id = ? ORDER BY fecha DESC",
+                (usuario_id,),
+            ).fetchall()
