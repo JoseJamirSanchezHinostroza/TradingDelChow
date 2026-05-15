@@ -160,7 +160,21 @@ def _mostrar_portafolio(sesion, motor) -> None:
 
     if resumen["posiciones"]:
         st.write("### Posiciones Abiertas")
-        df = pd.DataFrame(resumen["posiciones"])
+
+        df = pd.DataFrame(resumen["posiciones"]) #Crear el DataFrame
+        
+        #Renombrar columnas para mejor presentación
+        df = df.rename(columns={
+            "simbolo": "Símbolo",
+            "cantidad": "Cantidad",
+            "precio_compra": "Precio Promedio",
+            "precio_actual": "Precio Actual",
+            "rendimiento_%": "Rendimiento"
+        })
+
+        df.index = range(1, len(df) + 1) #Ajuste de índice de enumeración de posiciones
+
+        # Mostrar tabla con formato de moneda y porcentaje
         st.dataframe(
             df.style.format({
                 "precio_compra" : "${:.2f}",
@@ -169,6 +183,7 @@ def _mostrar_portafolio(sesion, motor) -> None:
             }),
             use_container_width=True,
         )
+
     else:
         st.info("Tu portafolio está vacío. ¡Empieza a tradear!")
 
@@ -179,6 +194,11 @@ def _mostrar_historial(db, u_id: int) -> None:
     if historial:
         df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
         df.index = range(len(df), 0, -1)
-        st.dataframe(df, use_container_width=True)
+        st.dataframe(
+            df.style.format({
+                "Precio": "${:.2f}"
+            }),
+            use_container_width=True
+        )
     else:
         st.info("Aún no has realizado ninguna operación.")
