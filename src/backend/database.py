@@ -6,6 +6,7 @@ Toda operación con SQLite pasa por aquí.
 
 import sqlite3
 from datetime import datetime
+import pytz
 
 
 class DatabaseManager:
@@ -130,12 +131,18 @@ class DatabaseManager:
                     (nuevo_saldo, usuario_id),
                 )
 
+
+                # Crea el objeto de zona horaria de Lima
+                zona_peru = pytz.timezone('America/Lima')
+                # Genera la fecha actual ajustada a esa zona
+                fecha_actual = datetime.now(zona_peru).strftime("%Y-%m-%d %H:%M:%S")
+
+
                 # 2. Registrar transacción
                 conn.execute(
                     "INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
                     "VALUES (?, ?, ?, ?, 'COMPRA', ?)",
-                    (usuario_id, simbolo, cantidad_comprada, precio_compra,
-                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    (usuario_id, simbolo, cantidad_comprada, precio_compra, fecha_actual),
                 )
 
                 # 3. Actualizar portafolio (precio promedio ponderado)
@@ -189,12 +196,18 @@ class DatabaseManager:
                     (nuevo_saldo, usuario_id),
                 )
 
+
+                # Crea el objeto de zona horaria de Lima
+                zona_peru = pytz.timezone('America/Lima')
+                # Genera la fecha actual ajustada a esa zona
+                fecha_actual = datetime.now(zona_peru).strftime("%Y-%m-%d %H:%M:%S")
+
+
                 # 2. Registrar transacción
                 conn.execute(
                     "INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
                     "VALUES (?, ?, ?, ?, 'VENTA', ?)",
-                    (usuario_id, simbolo, cantidad_vendida, precio_venta,
-                     datetime.now().strftime("%Y-%m-%d %H:%M:%S")),
+                    (usuario_id, simbolo, cantidad_vendida, precio_venta, fecha_actual),
                 )
 
                 # 3. Actualizar portafolio
