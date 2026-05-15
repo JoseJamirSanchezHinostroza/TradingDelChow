@@ -1,43 +1,39 @@
-import yfinance as yf
+"""
+backend/data_loader.py - TradeaYa!
+Exportación de historial de usuario a CSV o JSON.
+Los precios y gráficos ahora viven en TradeEngine para centralizar yfinance.
+"""
+
 import pandas as pd
 from database import DatabaseManager
 
+
 class DataLoader:
-    def __init__(self):
+    """Genera reportes exportables del historial de transacciones."""
+
+    def __init__(self) -> None:
         self.db = DatabaseManager()
 
-    def obtener_datos_grafico(self, ticker, periodo="1mo"):
+    def exportar_historial_usuario(self, usuario_id: int, formato: str = "csv") -> str:
         """
-        Para realizar los gráficos.
-        """
-
-        try:
-            stock = yf.Ticker(ticker)
-            hist = stock.history(period=period)
-            if hist.empty:
-                return None
-            # Devolvemos solo lo necesario: Fecha y Precio de Cierre
-            return hist['Close'].to_dict()
-        except Exception as e:
-            print(f"Error al cargar datos de mercado: {e}")
-            return None
-
-    def exportar_historial_usuario(self, usuario_id, formato="csv"):
-        """
-        Guarda el historial de transacciones en un archivo.
+        Exporta el historial de transacciones a un archivo CSV o JSON.
+        Devuelve un mensaje de éxito o error.
         """
         try:
             with self.db.conectar() as conn:
-                query = "SELECT * FROM transacciones WHERE usuario_id = ?"
-                df = pd.read_sql_query(query, conn, params=(usuario_id,))
-            
+                df = pd.read_sql_query(
+                    "SELECT * FROM transacciones WHERE usuario_id = ?",
+                    conn,
+                    params=(usuario_id,),
+                )
+
             nombre_archivo = f"historial_user_{usuario_id}.{formato}"
-            
+
             if formato == "csv":
                 df.to_csv(nombre_archivo, index=False)
             else:
                 df.to_json(nombre_archivo, orient="records")
-                
+
             return f"✅ Reporte generado: {nombre_archivo}"
         except Exception as e:
             return f"❌ Error al exportar: {e}"
