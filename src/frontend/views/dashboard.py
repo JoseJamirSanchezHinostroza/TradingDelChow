@@ -177,9 +177,9 @@ def _mostrar_portafolio(sesion, motor) -> None:
         # Mostrar tabla con formato de moneda y porcentaje
         st.dataframe(
             df.style.format({
-                "precio_compra" : "${:.2f}",
-                "precio_actual" : "${:.2f}",
-                "rendimiento_%" : "{:.2f}%",
+                "Precio Promedio" : "${:.2f}",
+                "Precio Actual" : "${:.2f}",
+                "Rendimiento" : "{:.2f}%",
             }),
             use_container_width=True,
         )
@@ -192,7 +192,7 @@ def _mostrar_historial(db, u_id: int) -> None:
     """Muestra el historial completo de transacciones del usuario."""
     historial = db.obtener_historial(u_id)
     if historial:
-        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
+        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cantidad", "Precio", "Fecha"])
         df.index = range(len(df), 0, -1)
         st.dataframe(
             df.style.format({
