@@ -1,8 +1,6 @@
 """
 backend/trade_engine.py - TradeaYa!
-Puente con las APIs externas: Alpaca (órdenes) y yfinance (precios).
-
-Fusiona lo que antes estaba repartido entre conexion_api.py y trade_engine.py.
+Puente con APIs externas: Alpaca (órdenes reales) y yfinance (precios).
 La lógica de validación vive en logic/calculos.py, no aquí.
 """
 
@@ -17,7 +15,7 @@ load_dotenv()
 
 
 class TradeEngine:
-    """Gestiona la conexión con Alpaca y la obtención de precios vía yfinance."""
+    """Gestiona precios vía yfinance y órdenes opcionales vía Alpaca."""
 
     def __init__(self) -> None:
         self._api = self._conectar_alpaca()
@@ -27,7 +25,7 @@ class TradeEngine:
     # ─────────────────────────────────────────────────────────
 
     def _conectar_alpaca(self):
-        """Inicializa el cliente de Alpaca. Devuelve None si las credenciales no están."""
+        """Inicializa el cliente de Alpaca. Devuelve None si las credenciales faltan."""
         key      = os.getenv("ALPACA_KEY")
         secret   = os.getenv("ALPACA_SECRET")
         endpoint = os.getenv("ALPACA_ENDPOINT")
@@ -53,9 +51,22 @@ class TradeEngine:
         Devuelve None si el símbolo no existe o hay error de red.
         """
         try:
-            stock = yf.Ticker(ticker)
-            return round(stock.fast_info["last_price"], 2)
+            return round(yf.Ticker(ticker).fast_info["last_price"], 2)
         except Exception:
+            return None
+
+    def obtener_datos_grafico(self, ticker: str, periodo: str = "1mo") -> dict | None:
+        """
+        Historial de precios de cierre para graficar.
+        Devuelve { fecha: precio } o None si hay error.
+        """
+        try:
+            hist = yf.Ticker(ticker).history(period=periodo)
+            if hist.empty:
+                return None
+            return hist["Close"].to_dict()
+        except Exception as e:
+            print(f"❌ Error al cargar historial de {ticker}: {e}")
             return None
 
     def validar_ticker(self, ticker: str) -> bool:
@@ -76,7 +87,7 @@ class TradeEngine:
         try:
             return float(self._api.get_account().cash)
         except Exception as e:
-            return f"Error Alpaca: {e}"
+            return f"❌ Error Alpaca: {e}"
 
     # ─────────────────────────────────────────────────────────
     # ÓRDENES ALPACA
@@ -85,7 +96,7 @@ class TradeEngine:
     def enviar_orden_compra(self, ticker: str, cantidad: int) -> str:
         """
         Envía una orden de compra a mercado a Alpaca.
-        Las validaciones de saldo y horario se hacen en logic/calculos.py, no aquí.
+        Las validaciones de saldo y horario se hacen en logic/calculos.py.
         """
         if self._api is None:
             return "❌ Alpaca no conectado."
