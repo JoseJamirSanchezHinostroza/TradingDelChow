@@ -50,11 +50,13 @@ class DatabaseManager:
                 );
 
                 CREATE TABLE IF NOT EXISTS portafolio (
-                    usuario_id             INTEGER NOT NULL,
+                    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+                    usuario_id             INTEGER,
                     simbolo                TEXT    NOT NULL,
                     cantidad               INTEGER NOT NULL,
                     precio_compra_promedio REAL    NOT NULL,
-                    PRIMARY KEY (usuario_id, simbolo)
+                    FOREIGN KEY(usuario_id) REFERENCES usuarios(id),
+                    UNIQUE(usuario_id, simbolo)
                 );
             """)
 
@@ -98,8 +100,10 @@ class DatabaseManager:
             ).fetchall()
 
         return {
-            simbolo: {"cantidad": cantidad, "precio_compra_promedio": precio_prom}
-            for simbolo, cantidad, precio_prom in filas
+            fila[0]: {
+                "cantidad": fila[1], 
+                "precio_compra_promedio": fila[2] # Este nombre es vital para el resto de la app
+            } for fila in filas
         }
 
     # ─────────────────────────────────────────────────────────
