@@ -9,3 +9,4 @@ openpyxl
 # Utilidades
 pytz
 python-dotenv
+streamlit
