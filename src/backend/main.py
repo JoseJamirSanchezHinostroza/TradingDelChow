@@ -1,56 +1,59 @@
+"""
+backend/main.py - TradeaYa!
+Módulo de prueba manual del backend: login, consulta de precio y compra.
+Ejecutar desde src/backend/ con: python main.py
+"""
+
 from database import DatabaseManager
 from trade_engine import TradeEngine
 from data_loader import DataLoader
-import time
 
-def ejecutar_sistema():
-    db = DatabaseManager()
-    motor = TradeEngine()
+
+def ejecutar_sistema() -> None:
+    db     = DatabaseManager()
+    motor  = TradeEngine()
     loader = DataLoader()
 
-    print("=== SISTEMA TRADEAYA: MÓDULO DE PRUEBAS PARA BACKEND ===")
-    
-    # 1. Intentamos registrar al usuario de prueba
-    # Usamos un bloque try por si ya existe, no se detenga el programa
+    print("=== TRADEAYA: MÓDULO DE PRUEBAS BACKEND ===\n")
+
+    # Registrar usuario de prueba (ignorar si ya existe)
     db.registrar_usuario("Estudiante UNMSM", "software@unmsm.edu.pe", "1234")
-    
-    # 2. Inicio de Sesión
-    print("\n[LOGIN]")
-    email = input("Introduce tu email (software@unmsm.edu.pe): ")
-    password = input("Introduce tu contraseña (1234): ")
-    
-    usuario = db.verificar_login(email, password)
-    
-    if usuario:
-        u_id, nombre, saldo = usuario
-        print(f"\n✅ Acceso concedido. Bienvenido, {nombre}.")
-        print(f"💰 Saldo inicial: ${saldo:,.2f}")
-        
-        # 3. Simulación de Compra
-        print("\n[MERCADO EN TIEMPO REAL]")
-        ticker = input("¿Qué acción deseas consultar? (ej: AAPL, MSFT, TSLA): ").upper()
-        precio = motor.obtener_precio_actual(ticker)
-        
-        if precio:
-            print(f"📈 El precio actual de {ticker} es: ${precio}")
-            cantidad = int(input(f"¿Cuántas acciones de {ticker} deseas comprar?: "))
-            costo_total = precio * cantidad
-            
-            if saldo >= costo_total:
-                nuevo_saldo = saldo - costo_total
-                # Guardamos en la base de datos
-                if db.actualizar_saldo_y_compra(u_id, ticker, cantidad, precio, nuevo_saldo):
-                    print(f"🚀 COMPRA EXITOSA. Nuevo saldo: ${nuevo_saldo:,.2f}")
-                    
-                    # 4. Exportar reporte
-                    print("\n[REPORTES]")
-                    print(loader.exportar_historial_usuario(u_id))
-            else:
-                print("❌ Saldo insuficiente para esta operación.")
-        else:
-            print("❌ No se pudo obtener el precio. Verifica el Ticker o tu conexión.")
-    else:
+
+    # Login
+    email    = input("Email (software@unmsm.edu.pe): ").strip()
+    password = input("Contraseña (1234): ").strip()
+    usuario  = db.verificar_login(email, password)
+
+    if not usuario:
         print("❌ Credenciales incorrectas.")
+        return
+
+    u_id, nombre, saldo = usuario
+    print(f"\n✅ Bienvenido, {nombre}. Saldo: ${saldo:,.2f}")
+
+    # Consulta y compra
+    ticker = input("\n¿Qué acción deseas consultar? (ej: AAPL, MSFT): ").strip().upper()
+    precio = motor.obtener_precio_actual(ticker)
+
+    if not precio:
+        print("❌ No se pudo obtener el precio. Verifica el ticker o tu conexión.")
+        return
+
+    print(f"📈 Precio actual de {ticker}: ${precio:,.2f}")
+    cantidad   = int(input(f"¿Cuántas acciones de {ticker} deseas comprar?: "))
+    costo_total = precio * cantidad
+
+    if saldo < costo_total:
+        print(f"❌ Saldo insuficiente. Necesitas ${costo_total:,.2f}, tienes ${saldo:,.2f}.")
+        return
+
+    nuevo_saldo = saldo - costo_total
+    if db.guardar_compra(u_id, ticker, cantidad, precio, nuevo_saldo):
+        print(f"🚀 Compra exitosa. Nuevo saldo: ${nuevo_saldo:,.2f}")
+        print(loader.exportar_historial_usuario(u_id))
+    else:
+        print("❌ Error al guardar en la base de datos.")
+
 
 if __name__ == "__main__":
     ejecutar_sistema()
