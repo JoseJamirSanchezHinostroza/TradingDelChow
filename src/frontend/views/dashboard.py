@@ -178,6 +178,7 @@ def _mostrar_historial(db, u_id: int) -> None:
     historial = db.obtener_historial(u_id)
     if historial:
         df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
+        df.index = range(len(df), 0, -1)
         st.dataframe(df, use_container_width=True)
     else:
         st.info("Aún no has realizado ninguna operación.")
