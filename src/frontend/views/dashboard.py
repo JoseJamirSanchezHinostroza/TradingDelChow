@@ -132,3 +132,12 @@ def mostrar_pantalla_dashboard():
             }), use_container_width=True)
         else:
             st.info("Tu portafolio está vacío. ¡Empieza a tradear!")
+
+    with st.expander("📜 Ver Historial de Operaciones Completo"): #Creación de nueva pestaña
+    hist = db.obtener_historial(u_id)
+    if hist:
+        import pandas as pd
+        df_hist = pd.DataFrame(hist, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
+        st.table(df_hist) # O st.dataframe(df_hist) para que se pueda scrollear
+    else:
+        st.info("Aún no has realizado ninguna operación.")
