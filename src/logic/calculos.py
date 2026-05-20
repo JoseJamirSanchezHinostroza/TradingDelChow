@@ -27,7 +27,7 @@ import pytz
 def mercado_abierto() -> bool:
     """
     Verifica si el mercado de EE. UU. está operativo.
-    Producción real: Lunes–Viernes, 9:30–16:00 EST.
+    Producción real: Lunes a Viernes de 9:30 a 16:00 Zona Horaria de Nueva York.
 
     NOTA DE TESTING: weekday < 7 (siempre True) y horas 01:00–23:59
     permiten operar cualquier día y hora. Para producción cambiar:
@@ -35,8 +35,8 @@ def mercado_abierto() -> bool:
         hour=1       →  hour=9,  minute=30
         hour=23      →  hour=16, minute=0
     """
-    tz_ny     = pytz.timezone("America/New_York")
-    ahora_ny  = datetime.now(tz_ny)
+    tz_ny     = pytz.timezone("America/New_York") #Extrae la Zona Horaria de Nueva York
+    ahora_ny  = datetime.now(tz_ny) #Extrae el tiempo actual
 
     es_dia_habil   = ahora_ny.weekday() < 7  # TESTING: cambiar a < 5 en producción
     hora_apertura  = ahora_ny.replace(hour=1,  minute=0,  second=0, microsecond=0)  # TESTING
@@ -51,7 +51,6 @@ def mercado_abierto() -> bool:
 
 COMISION_PORCENTAJE = 0.005  # 0.5 %
 
-
 def calcular_comision(monto_total: float) -> float:
     """Devuelve el monto de comisión para una operación."""
     return monto_total * COMISION_PORCENTAJE
@@ -62,7 +61,6 @@ def calcular_comision(monto_total: float) -> float:
 # ─────────────────────────────────────────────────────────
 
 LATENCIA_MAXIMA_SEGUNDOS = 60
-
 
 def es_precio_valido(timestamp_precio: float) -> bool:
     """True si el precio fue obtenido hace menos de LATENCIA_MAXIMA_SEGUNDOS."""
@@ -106,8 +104,8 @@ def validar_transaccion_compra(
     Valida si una compra puede ejecutarse.
 
     Devuelve: (éxito, mensaje, saldo_resultante, precio_compra)
-    • éxito=False  →  saldo_resultante es el saldo sin cambios, precio_compra es None.
-    • éxito=True   →  saldo_resultante es el saldo después de la compra.
+    • éxito=False  →  No hay cambios, se determina el faltante, permanece saldo_actual, precio_compra es None.
+    • éxito=True   →  nuevo_saldo es el saldo después de la compra.
     """
     if not mercado_abierto():
         return False, "Mercado cerrado. Solo se permite visualización.", saldo_actual, None
@@ -140,7 +138,8 @@ def validar_transaccion_venta(
     Valida si una venta puede ejecutarse.
 
     Devuelve: (éxito, mensaje, monto_a_recibir)
-    • éxito=False  →  monto_a_recibir es 0.
+    • éxito=False  →  monto_a_recibir es 0.0
+    • éxito=True   →  monto_a_recibir se calcula y devuelve
     """
     if not mercado_abierto():
         return False, "Mercado cerrado. Solo se permite visualización.", 0.0
