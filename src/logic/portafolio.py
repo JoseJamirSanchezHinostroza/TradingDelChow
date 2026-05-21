@@ -10,7 +10,7 @@ No depende de la base de datos ni de Streamlit.
 # ─────────────────────────────────────────────────────────
 
 def crear_portafolio() -> dict:
-    """Devuelve un portafolio vacío. Se llama una vez al iniciar sesión."""
+    """Devuelve un diccionario: portafolio vacío. Se llama una vez al iniciar sesión."""
     return {}
 
 
@@ -20,15 +20,19 @@ def crear_portafolio() -> dict:
 
 def registrar_compra(portafolio: dict, simbolo: str, cantidad: int, precio: float) -> dict:
     """
-    Actualiza el portafolio tras una compra exitosa.
+    Actualiza el portafolio tras una compra exitosa. Utiliza:
+    -Estado actual del portafolio (diccionario)
+    -Ticker de la acción (string)
+    -Cantidad que se compra (integer)
+    -Precio de compra (float)
 
-    • Acción nueva     → la agrega directamente.
-    • Acción existente → recalcula el precio promedio ponderado.
+    • Acción nueva     → Crea una entrada en el diccionario con el símbolo y le asigna su cantidad-precio.
+    • Acción existente → A partir de la cantidad-precio que ya había se calcula el precio promedio ponderado. Se asigna nuevo cantidad-precio.
 
     Fórmula: nuevo_prom = (cant_actual × prom_actual + cant_nueva × precio_nuevo)
                           / (cant_actual + cant_nueva)
     """
-    if simbolo not in portafolio:
+    if simbolo not in portafolio: # Acción nueva que no pertenece al portafolio
         portafolio[simbolo] = {"cantidad": cantidad, "precio_compra_promedio": precio}
     else:
         cant_actual  = portafolio[simbolo]["cantidad"]
@@ -48,17 +52,21 @@ def registrar_compra(portafolio: dict, simbolo: str, cantidad: int, precio: floa
 
 def registrar_venta(portafolio: dict, simbolo: str, cantidad: int) -> dict:
     """
-    Actualiza el portafolio tras una venta exitosa.
+    Actualiza el portafolio tras una venta exitosa. Utiliza:
+    -Estado actual del portafolio (diccionario)
+    -Ticker de la acción (string)
+    -Cantidad que se compra (integer)
 
-    • Venta parcial → reduce la cantidad (precio promedio no cambia).
-    • Venta total   → elimina la posición.
+    • No existe el Ticker en el portafolio → No se vende nada.
+    • Venta parcial → Reduce la cantidad (precio promedio no cambia).
+    • Venta total   → Elimina el Ticker del diccionario.
     """
-    if simbolo not in portafolio:
+    if simbolo not in portafolio: # No hay acción en el portafolio
         return portafolio  # No debería ocurrir si se validó antes
 
-    if cantidad >= portafolio[simbolo]["cantidad"]:
+    if cantidad >= portafolio[simbolo]["cantidad"]: # Venta total
         del portafolio[simbolo]
-    else:
+    else: # Venta parcial
         portafolio[simbolo]["cantidad"] -= cantidad
 
     return portafolio
@@ -69,7 +77,7 @@ def registrar_venta(portafolio: dict, simbolo: str, cantidad: int) -> dict:
 # ─────────────────────────────────────────────────────────
 
 def obtener_posicion(portafolio: dict, simbolo: str) -> dict | None:
-    """Devuelve los datos de una acción específica, o None si no está en el portafolio."""
+    """Devuelve los datos de una acción específica dentro del portafolio, o None si no está en este."""
     return portafolio.get(simbolo)
 
 
@@ -79,14 +87,14 @@ def obtener_posicion(portafolio: dict, simbolo: str) -> dict | None:
 
 def calcular_valor_portafolio(portafolio: dict, precios_actuales: dict) -> float:
     """
-    Calcula el valor total en dólares del portafolio al precio de hoy.
+    Calcula el valor total en dólares del portafolio al precio más actual (float).
     Las acciones sin precio disponible se ignoran sin interrumpir el cálculo.
 
     precios_actuales: { "AAPL": 195.30, "TSLA": 185.50, ... }
     """
-    total = sum(
-        datos["cantidad"] * precios_actuales[simbolo]
-        for simbolo, datos in portafolio.items()
-        if simbolo in precios_actuales
+    total = sum( # Función sum() para sumar todos los valores dentro del ()
+        datos["cantidad"] * precios_actuales[simbolo] # Nº acciones*cantidad
+        for simbolo, datos in portafolio.items() # Iteración sobre cada acción del portafolio
+        if simbolo in precios_actuales # Toma el dato sólo si el símbolo cuenta con un precio válido
     )
-    return round(total, 2)
+    return round(total, 2) # Redondeo a 2 decimales
