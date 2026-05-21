@@ -1,10 +1,10 @@
 """
 logic/sesion.py - TradeaYa!
-Fachada que une calculos.py y portafolio.py en un único objeto.
-El frontend solo necesita hablar con SesionTrading.
+Unión de calculos.py y portafolio.py en un único objeto, para ello importa sus funciones.
+El FrontEnd no utiliza toda la sección logic; solo necesita de la clase SesionTrading.
 """
 
-from datetime import datetime
+from datetime import datetime # Manejo fechas-horas
 
 from logic.calculos import (
     validar_transaccion_compra,
@@ -21,77 +21,79 @@ from logic.portafolio import (
 
 class SesionTrading:
     """
-    Representa la sesión activa de un usuario.
+    Cada vez que un usuario entra a la app, se crea una instancia de esta clase.
+    Representa la sesión activa de un usuario, cuya cuenta inicia con 100.000 dólares.
 
     Mantiene en memoria:
-        • saldo       – dinero disponible para operar
-        • portafolio  – acciones actuales con precio promedio
-        • historial   – lista de operaciones realizadas en esta sesión
+        • saldo       – Dinero disponible para operar
+        • portafolio  – Acciones (Tickers) actuales con su respectivo precio promedio
+        • historial   – Lista de operaciones realizadas en la sesión presente.
+        
+    Define funciones de compra, venta, resumen y registro en el historial.
     """
 
-    SALDO_INICIAL = 100_000.00  # Dólares ficticios de arranque
+    SALDO_INICIAL = 100_000.00  # Saldo inicial en dólares definido en la lógica de negocio
 
-    def __init__(self) -> None:
-        self.saldo      = self.SALDO_INICIAL
-        self.portafolio = crear_portafolio()
-        self.historial: list[dict] = []
+    def __init__(self) -> None: # Ejecución automática al iniciar sesión
+        self.saldo      = self.SALDO_INICIAL # Asignación de los 100.000$
+        self.portafolio = crear_portafolio() # Asignación de un nuevo diccionario vacío (función de portafolio.py)
+        self.historial: list[dict] = [] # Asignación de una lista vacía que guardará las operaciones (IMPORTANTE EN LA ÚLTIMA FUNCIÓN)
 
     # ─────────────────────────────────────────────────────────
-    # COMPRA
+    # FUNCIÓN DE COMPRA
     # ─────────────────────────────────────────────────────────
 
     def comprar(
         self, simbolo: str, cantidad: int, precio_actual: float, timestamp_precio: float
     ) -> tuple[bool, str]:
         """
-        Intenta ejecutar una compra.
-        Devuelve (éxito, mensaje).
+        A partir de la orden del FrontEnd de intentar ejecutar una compra, devuelve (éxito, mensaje).
+        Recibe el Ticker, la cantidad, su precio actual y la hora a la que se adquirió el precio.
         """
         exito, mensaje, nuevo_saldo, precio_compra = validar_transaccion_compra(
             self.saldo, precio_actual, cantidad, timestamp_precio
-        )
+        ) # Validación de la compra con la función de cálculos.py
 
-        if exito:
-            self.saldo      = nuevo_saldo
-            self.portafolio = registrar_compra(self.portafolio, simbolo, cantidad, precio_compra)
-            self._registrar_operacion("COMPRA", simbolo, cantidad, precio_compra)
+        if exito: # Compra exitosa
+            self.saldo      = nuevo_saldo # Actualización de saldo
+            self.portafolio = registrar_compra(self.portafolio, simbolo, cantidad, precio_compra) # Registro de la compra en el portafolio: añade las acciones (Función de portafolio.py)
+            self._registrar_operacion("COMPRA", simbolo, cantidad, precio_compra) # Registro de la compra en el historial de operaciones
 
-        return exito, mensaje
+        return exito, mensaje # Devuelve al dashboard el éxito o fracaso de la compra
 
     # ─────────────────────────────────────────────────────────
-    # VENTA
+    # FUNCIÓN VENTA
     # ─────────────────────────────────────────────────────────
 
     def vender(
         self, simbolo: str, cantidad: int, precio_actual: float, timestamp_precio: float
     ) -> tuple[bool, str]:
         """
-        Intenta ejecutar una venta.
-        Devuelve (éxito, mensaje).
+        A partir de la orden del FrontEnd de intentar ejecutar una venta, devuelve (éxito, mensaje).
+        Recibe el Ticker, la cantidad, su precio actual y la hora a la que se adquirió el precio.
         """
         exito, mensaje, monto_recibido = validar_transaccion_venta(
             self.portafolio, simbolo, cantidad, precio_actual, timestamp_precio
-        )
+        ) # Validación de la venta con la función de cálculos.py
 
-        if exito:
-            self.saldo     += monto_recibido
-            self.portafolio = registrar_venta(self.portafolio, simbolo, cantidad)
-            self._registrar_operacion("VENTA", simbolo, cantidad, precio_actual)
+        if exito: # Venta exitosa
+            self.saldo     += monto_recibido # Se añade lo recibido al saldo
+            self.portafolio = registrar_venta(self.portafolio, simbolo, cantidad) # Registro de la venta en el portafolio: retira las acciones (Función de portafolio.py)
+            self._registrar_operacion("VENTA", simbolo, cantidad, precio_actual) # Registro de la venta en el historial de operaciones
 
-        return exito, mensaje
+        return exito, mensaje # Devuelve al dashboard el éxito o fracaso de la venta
 
     # ─────────────────────────────────────────────────────────
-    # RESUMEN (para el dashboard)
+    # FUNCIÓN DE RESUMEN
     # ─────────────────────────────────────────────────────────
 
     def get_resumen(self, precios_actuales: dict) -> dict:
         """
-        Estado completo de la sesión, listo para pintar el dashboard.
-
-        Por cada posición incluye:
+        Función que utiliza el estado completo de la sesión para elaborar el dashboard.
+        Por cada acción del portafolio se crea un diccionario que incluye:
             simbolo, cantidad, precio_compra, precio_actual, rendimiento_%
         """
-        posiciones = [
+        posiciones = [ # List Comprehension: creación de listas mediante iteración sobre listas existentes
             {
                 "simbolo"       : simbolo,
                 "cantidad"      : datos["cantidad"],
@@ -100,28 +102,28 @@ class SesionTrading:
                 "rendimiento_%" : calcular_rendimiento(
                     datos["precio_compra_promedio"],
                     precios_actuales.get(simbolo, 0),
-                ),
+                ), # Cálculo del rendimiento de cada acción con la función de calculos.py
             }
-            for simbolo, datos in self.portafolio.items()
+            for simbolo, datos in self.portafolio.items() # Recorre el inventario de acciones
         ]
 
-        valor_portafolio = calcular_valor_portafolio(self.portafolio, precios_actuales)
+        valor_portafolio = calcular_valor_portafolio(self.portafolio, precios_actuales) # Suma del valor de todas las acciones (función de portafolio.py)
 
-        return {
+        return { # Diccionario que se envia al Dashboard
             "saldo_disponible"  : round(self.saldo, 2),
             "valor_portafolio"  : valor_portafolio,
-            "patrimonio_total"  : round(self.saldo + valor_portafolio, 2),
+            "patrimonio_total"  : round(self.saldo + valor_portafolio, 2), # Suma del saldo con el valor del portafolio
             "posiciones"        : posiciones,
-            "total_operaciones" : len(self.historial),
+            "total_operaciones" : len(self.historial), # Longitud del historial de operaciones
         }
 
     # ─────────────────────────────────────────────────────────
-    # HISTORIAL (interno)
+    # FUNCIÓN DE REGISTRO EN EL HISTORIAL (interna, el Dashboard no la llama)
     # ─────────────────────────────────────────────────────────
 
     def _registrar_operacion(self, tipo: str, simbolo: str, cantidad: int, precio: float) -> None:
         """Agrega una operación al historial en memoria. Uso interno."""
-        self.historial.append({
+        self.historial.append({ # Agrega a la lista vacía del inicio todos los datos de la nueva transacción
             "tipo"     : tipo,
             "simbolo"  : simbolo,
             "cantidad" : cantidad,
