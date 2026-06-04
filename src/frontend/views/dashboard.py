@@ -132,8 +132,8 @@ def _ejecutar_compra(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_
     nuevo_saldo = sesion.saldo - costo_total # Cálculo del saldo sobrante
     if db.guardar_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo): # Intento de guardado de la compra en la DataBase
         sesion.comprar(simbolo, cantidad, precio_actual, time.time()) # Actualiza la memoria de la sesión: suma las acciones al portafolio
-        st.success(f"✅ Compra de {cantidad} × {simbolo} guardada.")
-        time.sleep(1) # Congela el programa 1 segundo para leer el mensaje de éxito
+        st.toast(f"✅ Compra de {cantidad} × {simbolo} exitosa.", icon="🟩")
+        time.sleep(1.5) # Congela el programa 1 segundo para leer el mensaje de éxito
         st.rerun() # Reinicio de pantalla: actualización de datos
     else:
         st.error("Error al guardar la compra en la base de datos.")
@@ -149,8 +149,8 @@ def _ejecutar_venta(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_a
 
     if exito:
         if db.guardar_venta(u_id, simbolo, cantidad, precio_actual, sesion.saldo): # Intento de guardado de la venta en la DataBase
-            st.success(f"✅ Venta registrada. {msg}")
-            time.sleep(1) # Congela el programa 1 segundo para leer el mensaje de éxito
+            st.toast(f"✅ Venta registrada. {msg}", icon="🟥")
+            time.sleep(1.5) # Congela el programa 1 segundo para leer el mensaje de éxito
             st.rerun() # Reinicio de pantalla: actualización de datos
         else:
             st.error("Error al guardar la venta en la base de datos.")
