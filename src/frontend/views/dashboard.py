@@ -96,9 +96,17 @@ def _mostrar_grafico(motor, simbolo: str) -> None:
         if datos_hist: # Si existen los datos
             serie = pd.Series(datos_hist) # Conversión de datos crudos a una columna Pandas de datos
             serie.index = pd.to_datetime(serie.index).date # Recorta las fechas para el eje X (solo día)
+            
+            variacion = ((serie.iloc[-1] - serie.iloc[0]) / serie.iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
+            
+            st.metric(
+                label="Precio respecto al mes anterior", 
+                value=f"${serie.iloc[-1]:,.2f}", 
+                delta=f"${serie.iloc[-1]-serie.iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación entre hace 1 mes y hoy en absoluto y porcentaje
+            )
+
             st.area_chart(serie, color="#29b5e8") # Gráfico con relleno de color celeste
 
-            variacion = ((serie.iloc[-1] - serie.iloc[0]) / serie.iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             st.caption(f"Variación del último mes: **{variacion:+.2f}%**") # Muestra la variación en porcentaje y con signo (+.2f)
         else:
             st.warning(f"Sin historial disponible para {simbolo}.") # No hay datos
@@ -163,11 +171,23 @@ def _mostrar_portafolio(sesion, motor) -> None:
     }
 
     resumen = sesion.get_resumen(precios_vivos) # Delega los precios frescos a la sesión para obtener el resumen: Ganancia o Pérdida
+    costo_total = sum(p["cantidad"] * p["precio_compra"] for p in resumen["posiciones"]) # Lo que costaron las acciones actuales
 
-    k1, k2, k3 = st.columns(3) # División en 3 bloques para los siguientes saldos:
-    k1.metric("Saldo Disponible",  f"${resumen['saldo_disponible']:,.2f}")
-    k2.metric("Valor Acciones",    f"${resumen['valor_portafolio']:,.2f}")
-    k3.metric("Patrimonio Total",  f"${resumen['patrimonio_total']:,.2f}")
+    k1, k2, k3 = st.columns(3) # División en 3 bloques para los siguientes saldos y diferencias:
+    k1.metric(
+        label="Saldo Disponible",
+        value=f"${resumen['saldo_disponible']:,.2f}"
+    )
+    k2.metric(
+        label="Valor Acciones",
+        value=f"${resumen['valor_portafolio']:,.2f}",
+        delta=f"${resumen['valor_portafolio'] - costo_total:,.2f}" if costo_total > 0 else None # Diferencia entre el valor actual de las acciones menos lo que costaron
+    )
+    k3.metric(
+        label="Patrimonio Total",
+        value=f"${resumen['patrimonio_total']:,.2f}",
+        delta=f"${resumen['patrimonio_total'] - 10000.00:,.2f} Total" # Diferencia entre el patrimonio actual e inicial
+    )
 
     st.markdown("---")
 
