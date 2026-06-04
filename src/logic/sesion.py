@@ -32,7 +32,7 @@ class SesionTrading:
     Define funciones de compra, venta, resumen y registro en el historial.
     """
 
-    SALDO_INICIAL = 100_000.00  # Saldo inicial en dólares definido en la lógica de negocio
+    SALDO_INICIAL = 10_000.00  # Saldo inicial en dólares definido en la lógica de negocio
 
     def __init__(self) -> None: # Ejecución automática al iniciar sesión
         self.saldo      = self.SALDO_INICIAL # Asignación de los 100.000$

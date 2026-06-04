@@ -37,7 +37,7 @@ class DatabaseManager:
                     nombre   TEXT    NOT NULL,                   -- Nombre del usuario; NOT NULL obliga a que siempre tenga valor
                     email    TEXT    UNIQUE NOT NULL,            -- Email del usuario; UNIQUE impide correos duplicados en la tabla
                     password TEXT    NOT NULL,                   -- Contraseña del usuario almacenada en texto plano
-                    saldo    REAL    DEFAULT 100000.0            -- Saldo inicial en dólares; si no se especifica al crear el usuario, se asigna $100,000
+                    saldo    REAL    DEFAULT 10000.0            -- Saldo inicial en dólares; si no se especifica al crear el usuario, se asigna $100,000
                 );
 
                 CREATE TABLE IF NOT EXISTS transacciones (
