@@ -59,7 +59,7 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
             variacion = ((df[col_cierre].iloc[-1] - df[col_cierre].iloc[0]) / df[col_cierre].iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             
             st.metric( # Métrica dinámica sobre el gráfico que muestra el precio actual y la variación respecto al inicio del periodo
-                label=f"Variación respecto al inicio del periodo {nombres_periodo[periodo]}", 
+                label=f"Precio Actual {nombres_periodo[periodo]}", 
                 value=f"${df[col_cierre].iloc[-1]:,.2f}", # Precio final del periodo
                 delta=f"${df[col_cierre].iloc[-1]-df[col_cierre].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
             )
@@ -107,9 +107,10 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     gridcolor='#1c2541',       # Rejilla sutil azulada/neon
                     linecolor='#1c2541',
                     rangeslider=dict(visible=False), # Oculta la barra de abajo que quita espacio
-                    type='date' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
-                    tickvals=list(range(0, len(df), 4)) if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
-                    ticktext=[d.strftime('%b %d') for d in df.index[::3]] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
+                    type='category' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
+                    tickvals=df.index if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
+                    ticktext=[d.strftime('%b %d') for d in df.index] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
+                    nticks=8 if periodo != "1d" else None, # Ajuste de intervalos de etiquetas para evitar amontonamiento de fechas
                     tickangle=0 # Mantiene las fechas perfectamente horizontales y limpias
                 ),
                 yaxis=dict(
