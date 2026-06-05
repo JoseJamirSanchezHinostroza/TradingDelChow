@@ -71,7 +71,7 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     x=df.index,
                     y=df['volume'],
                     name='Volume',
-                    marker_color='rgba(0, 180, 216, 0.25)', # Barras de volumen en gris claro
+                    marker_color='rgba(0, 180, 216, 0.18)', # Barras de volumen en gris claro
                     yaxis='y2', # Segundo eje Y para el volumen
                     hoverinfo='skip'
                 ))
@@ -107,10 +107,9 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     gridcolor='#1c2541',       # Rejilla sutil azulada/neon
                     linecolor='#1c2541',
                     rangeslider=dict(visible=False), # Oculta la barra de abajo que quita espacio
-                    type='category' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
-                    tickvals=df.index if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
-                    ticktext=[d.strftime('%b %d') for d in df.index] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
-                    nticks=8 if periodo != "1d" else None, # Ajuste de intervalos de etiquetas para evitar amontonamiento de fechas
+                    type='date' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
+                    tickvals=list(range(0, len(df), 4)) if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
+                    ticktext=[d.strftime('%b %d') for d in df.index[::3]] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
                     tickangle=0 # Mantiene las fechas perfectamente horizontales y limpias
                 ),
                 yaxis=dict(
