@@ -5,14 +5,12 @@ La lógica de validación vive en logic/calculos.py, no aquí.
 """
 
 from __future__ import annotations   # Permite usar tipos como "float | None" en versiones de Python anteriores a 3.10
-
 import os                            # Módulo estándar para interactuar con el sistema operativo; se usa aquí para leer variables de entorno
-
 import yfinance as yf                # Librería que consume la API de Yahoo Finance para obtener precios y datos históricos de acciones
 from dotenv import load_dotenv       # Función que carga las variables de un archivo .env al entorno del proceso actual
+import pandas as pd                      # Librería para manipulación de datos; se usa aquí para manejar los DataFrames que devuelve yfinance
 
 load_dotenv()                        # Lee el archivo .env del directorio actual y establece sus pares clave=valor como variables de entorno (ALPACA_KEY, ALPACA_SECRET, etc.)
-
 
 class TradeEngine:
     """Gestiona precios vía yfinance y órdenes opcionales vía Alpaca."""
@@ -61,10 +59,16 @@ class TradeEngine:
         Devuelve { fecha: precio } o None si hay error.
         """
         try:
-            hist = yf.Ticker(ticker).history(period=periodo)  # Descarga el historial OHLCV del ticker para el período indicado (ej: "1mo", "3mo", "1y") como DataFrame
+            if periodo == "1d":
+               hist = yf.Ticker(ticker).history(period="1d", interval="5m") # Descarga datos de hoy con velas de 5 minutos 
+            else:
+               hist = yf.Ticker(ticker).history(period=periodo)  # Descarga el historial OHLCV del ticker para el período indicado (ej: "1mo", "3mo", "1y") como DataFrame
+            
             if hist.empty:                                     # Verifica si el DataFrame está vacío; ocurre con tickers inválidos o fuera de mercado
                 return None                                    # Devuelve None para indicar que no hay datos disponibles
-            return hist["Close"].to_dict()                     # Extrae solo la columna de precios de cierre y la convierte a diccionario {Timestamp: precio}
+            
+            return hist                    # Extrae todo el DF OHLCV para el trazo de velas en mostrar gráfico
+        
         except Exception as e:                                 # Captura cualquier error durante la descarga o procesamiento
             print(f"❌ Error al cargar historial de {ticker}: {e}")  # Imprime el error en consola para diagnóstico, incluyendo el ticker afectado
             return None                                        # Devuelve None para indicar fallo al llamador

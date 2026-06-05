@@ -51,41 +51,48 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
             elif isinstance(datos_hist, pd.Series):
                 df = datos_hist.to_frame(name="Close")
             else:
-                df = datos_hist
+                df = datos_hist.copy()
 
-            if periodo == "1d":
-                df.index = pd.to_datetime(df.index) # Intradía: muestra horas y minutos
-            else:
-                df.index = pd.to_datetime(df.index).date # Recorta las fechas para el eje X (solo día)
-            
-            variacion = ((df['Close'].iloc[-1] - df['Close'].iloc[0]) / df['Close'].iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
+            df.columns = [str(c).lower() for c in df.columns] # Forzar columnas a minúsculas para evitar fallos de coincidencia
+            df.index = pd.to_datetime(df.index)
+            col_cierre = "close" if "close" in df.columns else df.columns[0] # Asegurar que 'close' exista
+            variacion = ((df[col_cierre].iloc[-1] - df[col_cierre].iloc[0]) / df[col_cierre].iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             
             st.metric( # Métrica dinámica sobre el gráfico que muestra el precio actual y la variación respecto al inicio del periodo
                 label=f"Variación respecto al inicio del periodo {nombres_periodo[periodo]}", 
-                value=f"${df['Close'].iloc[-1]:,.2f}", # Precio final del periodo
-                delta=f"${df['Close'].iloc[-1]-df['Close'].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
+                value=f"${df[col_cierre].iloc[-1]:,.2f}", # Precio final del periodo
+                delta=f"${df[col_cierre].iloc[-1]-df[col_cierre].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
             )
 
             fig = go.Figure() # Gráfico de velas japonesas con Plotly
 
-            if all(col in df.columns for col in ["Open", "High", "Low", "Close"]): # Si YFinance brinda el DF completo OHLC dibuja las velas
+            if 'volume' in df.columns and df['volume'].max() > 0:
+                fig.add_trace(go.Bar(
+                    x=df.index,
+                    y=df['volume'],
+                    name='Volume',
+                    marker_color='rgba(0, 180, 216, 0.25)', # Barras de volumen en gris claro
+                    yaxis='y2', # Segundo eje Y para el volumen
+                    hoverinfo='skip'
+                ))
+
+            if all(col in df.columns for col in ["open", "high", "low", "close"]): # Si YFinance brinda el DF completo OHLC dibuja las velas
                 fig.add_trace(go.Candlestick(
                     x=df.index,
-                    open=df["Open"],
-                    high=df["High"],
-                    low=df["Low"],
-                    close=df["Close"],
+                    open=df["open"],
+                    high=df["high"],
+                    low=df["low"],
+                    close=df["close"],
                     increasing_line_color='#26a69a', # Verde TradingView
                     decreasing_line_color='#ef5350', # Rojo TradingView
-                    name="Velas"
+                    name="Precio"
                 ))
             else:
                 fig.add_trace(go.Scatter(
                     x=df.index,
-                    y=df["Close"],
-                    mode='lines+markers' if len(df) < 30 else 'lines', # Puntos si hay pocos datos
-                    line=dict(color='#00b4d8', width=2.5),
-                    marker=dict(color='#ffffff', size=5, line=dict(color='#00b4d8', width=2)), # Puntos blancos con borde cyan
+                    y=df[col_cierre],
+                    mode='lines+markers' if len(df) < 15 else 'lines', # Puntos si hay pocos datos
+                    line=dict(color='#00b4d8', width=3),
                     name="Cierre"
                 ))
 
@@ -99,13 +106,27 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     showgrid=True, 
                     gridcolor='#1c2541',       # Rejilla sutil azulada/neon
                     linecolor='#1c2541',
-                    rangeslider=dict(visible=False) # Oculta la barra de abajo que quita espacio
+                    rangeslider=dict(visible=False), # Oculta la barra de abajo que quita espacio
+                    type='category' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
+                    tickvals=df.index if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
+                    ticktext=[d.strftime('%b %d') for d in df.index] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
+                    nticks=8 if periodo != "1d" else None, # Ajuste de intervalos de etiquetas para evitar amontonamiento de fechas
+                    tickangle=0 # Mantiene las fechas perfectamente horizontales y limpias
                 ),
                 yaxis=dict(
                     showgrid=True, 
                     gridcolor='#1c2541', 
                     linecolor='#1c2541',
-                    side='right'               # Precios a la derecha (Estándar de Pro-Trading)
+                    side='right',               # Precios a la derecha (Estándar de Pro-Trading)
+                    autorange=True, # Autoescalado para ajustar al rango de precios
+                    fixedrange=True
+                ),
+                yaxis2=dict(
+                    overlaying='y', # Superpuesto en el gráfico
+                    side='left', # Volumen a la izquierda para diferenciar de los precios
+                    showgrid=False,
+                    showticklabels=False,
+                    range=[0, float(df['volume'].max()*4)] if ('volume' in df.columns and df['volume'].max() > 0) else [0, 1]
                 ),
                 hovermode='x unified',
                 showlegend=False
