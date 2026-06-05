@@ -15,7 +15,7 @@ from yahoo_fin import stock_info as si # Yahoo Finance para obtener Tickers
 
 @st.cache_data(ttl=86400) # Se guarda en caché por 24 horas para priorizar velocidad
 
-def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del FTP público filtrada para compatibilizar con Yahoo Finance
+def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del servidor FileTransferProtocol público filtrada para compatibilizar con Yahoo Finance
     try:
         url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt"
         df = pd.read_csv(url, sep='|')
