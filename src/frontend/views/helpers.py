@@ -7,8 +7,6 @@ import time # Librería de tiempo
 import pandas as pd # Pandas para tablas de datos
 import streamlit as st # Streamlit como motor gráfico de la página web
 import plotly.graph_objects as go # Plotly para gráficos avanzados de velas japonesas
-from yahoo_fin import stock_info as si # Yahoo Finance para obtener Tickers
-
 
 # ─────────────────────────────────────────────────────────
 # FUNCIÓN QUE OBTIENE TODOS LOS TICKERS DISPONIBLES DEL MERCADO
