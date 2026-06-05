@@ -6,6 +6,7 @@ Definición de funciones auxiliares para la construcción del Dashboard
 import time # Librería de tiempo
 import pandas as pd # Pandas para tablas de datos
 import streamlit as st # Streamlit como motor gráfico de la página web
+import plotly.graph_objects as go # Plotly para gráficos avanzados de velas japonesas
 from yahoo_fin import stock_info as si # Yahoo Finance para obtener Tickers
 
 
@@ -42,28 +43,82 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
     
     try:
         datos_hist = motor.obtener_datos_grafico(simbolo, periodo=periodo) # Petición al motor de precios el historial del último mes
-        if datos_hist: # Si existen los datos
-            serie = pd.Series(datos_hist) # Conversión de datos crudos a una columna Pandas de datos
-            if periodo == "1d":
-                serie.index = pd.to_datetime(serie.index) # Intradía: muestra horas y minutos
-            else:
-                serie.index = pd.to_datetime(serie.index).date
-            serie.index = pd.to_datetime(serie.index).date # Recorta las fechas para el eje X (solo día)
+        
+        if datos_hist is not None and (not datos_hist.empty if hasattr(datos_hist, 'empty') else datos_hist): # Si existen los datos
             
-            variacion = ((serie.iloc[-1] - serie.iloc[0]) / serie.iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
+            if isinstance(datos_hist, dict): # Si el motor devuelve un diccionario o serie se convierte a DataFrame
+                df = pd.DataFrame(list(datos_hist.items()), columns=["Fecha", "Close"]).set_index("Fecha")
+            elif isinstance(datos_hist, pd.Series):
+                df = datos_hist.to_frame(name="Close")
+            else:
+                df = datos_hist
+
+            if periodo == "1d":
+                df.index = pd.to_datetime(df.index) # Intradía: muestra horas y minutos
+            else:
+                df.index = pd.to_datetime(df.index).date # Recorta las fechas para el eje X (solo día)
+            
+            variacion = ((df['Close'].iloc[-1] - df['Close'].iloc[0]) / df['Close'].iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             
             st.metric( # Métrica dinámica sobre el gráfico que muestra el precio actual y la variación respecto al inicio del periodo
-                label=f"Variación respecto al {nombres_periodo.get(periodo, 'periodo')}", 
-                value=f"${serie.iloc[-1]:,.2f}", 
-                delta=f"${serie.iloc[-1]-serie.iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación entre hace 1 mes y hoy en absoluto y porcentaje
+                label=f"Variación respecto al inicio del periodo {nombres_periodo[periodo]}", 
+                value=f"${df['Close'].iloc[-1]:,.2f}", # Precio final del periodo
+                delta=f"${df['Close'].iloc[-1]-df['Close'].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
             )
 
-            st.area_chart(serie, color="#29b5e8") # Gráfico con relleno de color celeste
+            fig = go.Figure # Gráfico de velas japonesas con Plotly
+
+            if all(col in df.columns for col in ["Open", "High", "Low", "Close"]): # Si YFinance brinda el DF completo OHLC dibuja las velas
+                fig.add_trace(go.Candlestick(
+                    x=df.index,
+                    open=df["Open"],
+                    high=df["High"],
+                    low=df["Low"],
+                    close=df["Close"],
+                    increasing_line_color='#26a69a', # Verde TradingView
+                    decreasing_line_color='#ef5350', # Rojo TradingView
+                    name="Velas"
+                ))
+
+            fig.add_trace(go.Scatter( # Trazo cyan con puntos blancos para los Close
+                x=df.index,
+                y=df["Close"],
+                mode='lines+markers' if len(df) < 30 else 'lines', # Puntos si hay pocos datos
+                line=dict(color='#00b4d8', width=2.5),
+                marker=dict(color='#ffffff', size=5, line=dict(color='#00b4d8', width=2)), # Puntos blancos con borde cyan
+                name="Cierre"
+            ))
+
+            fig.update_layout( # Estilo profesional
+                template='plotly_dark',
+                paper_bgcolor='rgba(0,0,0,0)', # Fondo transparente para integración con Streamlit
+                plot_bgcolor='#0b132b', # Azul oscuro profundo para el background del gráfico
+                margin=dict(l=10, r=10, t=10, b=10),
+                height=420,
+                xaxis=dict(
+                    showgrid=True, 
+                    gridcolor='#1c2541',       # Rejilla sutil azulada/neon
+                    linecolor='#1c2541',
+                    rangeslider=dict(visible=False) # Oculta la barra de abajo que quita espacio
+                ),
+                yaxis=dict(
+                    showgrid=True, 
+                    gridcolor='#1c2541', 
+                    linecolor='#1c2541',
+                    side='right'               # Precios a la derecha (Estándar de Pro-Trading)
+                ),
+                hovermode='x unified',
+                showlegend=False
+            )
+
+            # Renderización en Streamlit
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            st.caption(f"Variación del periodo: **{variacion:+.2f}%**")
 
         else:
             st.warning(f"Sin historial disponible para {simbolo} en el periodo '{periodo}'.") # No hay datos
     except Exception as e:
-        st.error(f"Error procesando gráfico: {e}") # Fallo de la API/Internet
+        st.error(f"Error procesando gráfico profesional: {e}") # Fallo de la API/Internet
 
 # ─────────────────────────────────────────────────────────
 # Ejecución de Compra
@@ -186,4 +241,3 @@ def _mostrar_historial(db, u_id: int) -> None:
         )
     else:
         st.info("Aún no has realizado ninguna operación. ¿Qué esperas?") # Si no hay opetaciones
-
