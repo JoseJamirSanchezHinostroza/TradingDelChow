@@ -32,8 +32,8 @@ from views.dashboard import mostrar_pantalla_dashboard # Pantalla dónde el usua
 # ── CONFIG DE PÁGINA ──────────────────────────────────────────────────
 st.set_page_config(page_title="TradeaYa!", page_icon="📈", layout="wide") # Define nombre de la página y la ocupación total de la pantalla
 
-# ── INICIALIZACIÓN DE OBJETOS (evento único por sesión) ────────────────────────────
-""" Si algo no se encuentra en la memoria de sesión, lo crea utilizando las clases importadas: los datos sobreviven los refresh """
+# ── INICIALIZACIÓN DE OBJETOS (evento único por sesión): Si algo no se encuentra en la memoria de sesión, lo crea utilizando las clases importadas: los datos sobreviven los refresh ────────────────────────────
+
 if "db"     not in st.session_state:
     st.session_state.db     = DatabaseManager()
 if "sesion" not in st.session_state:
@@ -43,15 +43,15 @@ if "motor"  not in st.session_state:
 if "loader" not in st.session_state:
     st.session_state.loader = DataLoader()
 
-# ── ESTADO DE AUTENTICACIÓN (evento único por sesión) ────────────────────────
-"""Si el ID de usuario no se encuentra en la memoria de sesión, inicializa variables por seguridad"""
+# ── ESTADO DE AUTENTICACIÓN (evento único por sesión): Si el ID de usuario no se encuentra en la memoria de sesión, inicializa variables por seguridad ────────────────────────
+
 if "usuario_id" not in st.session_state:
     st.session_state.usuario_id     = None
     st.session_state.usuario_nombre = None
     st.session_state.saldo_actual   = 0.0
 
-# ── ENRUTADOR PRINCIPAL ───────────────────────────────────────────────────────
-""" Si el ID de usuario se encuentra en la memoria de sesión, vas directo a la pantalla de operaciones (DashBoard). Si no, te manda a iniciar sesión (funciones de views)"""
+# ── ENRUTADOR PRINCIPAL: Si el ID de usuario se encuentra en la memoria de sesión, vas directo a la pantalla de operaciones (DashBoard). Si no, te manda a iniciar sesión (funciones de views)───────────────────────────────────────────────────────
+
 if st.session_state.usuario_id is None:
     mostrar_pantalla_login()
 else:
