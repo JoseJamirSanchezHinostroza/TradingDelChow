@@ -6,6 +6,27 @@ Graficación de la terminal de inversión: consulta de precios, compra/venta y r
 import time # Librería de tiempo
 import pandas as pd # Pandas para tablas de datos
 import streamlit as st # Streamlit como motor gráfico de la página web
+from yahoo_fin import stock_info as si # Yahoo Finance para obtener Tickers
+
+# ─────────────────────────────────────────────────────────
+# FUNCIÓN QUE OBTIENE TODOS LOS TICKERS DISPONIBLES DEL MERCADO
+# ─────────────────────────────────────────────────────────
+@st.cache_data(ttl=86400) # Se guarda en caché por 24 horas para priorizar velocidad
+
+def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del ecosistema Yahoo Finance
+    try:
+        nasdaq = si.tickers_nasdaq()
+        sp500 = si.tickers_sp500()
+        dow = si.tickers_dow()
+
+        todos_los_tickers = list(set(nasdaq + sp500 + dow)) # Unión de las listas y eliminación de duplicados con set()
+        todos_limpios = [str(t).upper() for t in todos_los_tickers if pd.notna(t)]
+
+        return sorted(todos_limpios) # Retorna la lista ordenada alfabéticamente
+    
+    except Exception as e:
+        st.error(f"Error al obtener los tickers: {e}")
+        return ["AAPL", "AMD", "AMZN", "MSFT", "NVDA", "TSLA"] # Lista de Tickers respaldo por si falta Internet
 
 # ─────────────────────────────────────────────────────────
 # FUNCIÓN QUE DIBUJA LA PANTALLA
@@ -17,6 +38,8 @@ def mostrar_pantalla_dashboard() -> None:
     db     = st.session_state.db # // la base de datos
     u_id   = st.session_state.usuario_id # // el ID de usuario
 
+    lista_completa_tickers = _obtener_todos_los_tickers() # Instantáneo por el caché
+    
     if "db_sincronizada" not in st.session_state: # Sincronización inicial y única con la DB por sesión para cargar saldo y portafolio
         with db.conectar() as conn: # Abre la DataBase
             fila = conn.execute( # Extrae el saldo del usuario de la tabla usuarios
@@ -42,77 +65,132 @@ def mostrar_pantalla_dashboard() -> None:
     st.title("📈 TradeaYa! | Terminal de Inversión")
     st.markdown("---")
 
-    col_izq, col_der = st.columns([1, 2]) # División de la página en 2 columnas (derecha es el doble de ancha que la izquierda)
+    tab_portafolio, tab_inversion = st.tabs(["📊 Mi Portafolio", "⚡ Zona de Inversión"]) # División de la página en 2 pestañas
+    
+    # ─────────────────────────────────────────
+    # PESTAÑA DE PORTAFOLIO
+    # ─────────────────────────────────────────
+    with tab_portafolio:
+        st.subheader("Resumen de tu cuenta")
+        _mostrar_portafolio(sesion, motor) # Gráfico del portafolio
+        st.markdown("---")
 
-    # ── Columna izquierda: Todo lo que aparecerá ───────────────────────────────────────
-    with col_izq:
-        st.subheader("⚡ Operaciones")
+        if sesion.portafolio: # Si el portafolio no está vacío, muestra el historial de operaciones
+            st.subheader("Análisis de mis acciones")
+            col_sel, col_per = st.columns([2, 1]) # División en 2 columnas: selección de acción y gráfico de precios
+            
+    # ── Columnas ───────────────────────────────────────────       
+            with col_sel:
+                accion_seleccionada = st.selectbox(
+                    "Selecciona una acción de tu portafolio:", 
+                    list(sesion.portafolio.keys())
+                )
 
-        simbolo      = st.text_input("Ticker (ej: AAPL, TSLA, NVDA):").strip().upper() # Caja de texto para ingresar Ticker (quita espacios y pone mayúsculas automáticamente)
-        cantidad     = st.number_input("Cantidad:", min_value=1, step=1) # Caja de números para colocar la cantidad de acciones a operar (números forzadamente positivos y enteros)
-        precio_actual = 0.0
+            with col_per:
+                periodo_portafolio = st.radio(
+                    "Rango de tiempo:", 
+                    ["1d", "1mo", "1y"], 
+                    format_func=lambda x: {"1d": "1 Día", "1mo": "1 Mes", "1y": "1 Año"}[x],
+                    horizontal=True,
+                    key="radio_port"
+                )
 
-        if simbolo: # Si el usuario escribe un Ticker
-            with st.spinner(f"Consultando mercado: {simbolo}..."): # Rueda de carga para búsqueda del precio
-                precio_actual = motor.obtener_precio_actual(simbolo) # Va a Yahoo Finance a obtener el precio con la función del BackEnd
+            _mostrar_grafico(motor, accion_seleccionada, periodo_portafolio)
 
-            if precio_actual: # Si lo obtiene...
-                st.metric(label=f"Precio Actual {simbolo}", value=f"${precio_actual:,.2f}") # Muestra el precio encontrado
-                _mostrar_grafico(motor, simbolo) # Gráfico de los precios históricos (último mes)
-            else: # Si no...
-                st.error("Símbolo no encontrado o error de conexión.")
+        st.markdown("---")
+        with st.expander("📜 Ver Historial de Operaciones"):
+            _mostrar_historial(db, u_id)
 
-        col_compra, col_venta = st.columns(2) # Divide la columna izquierda en 2 botones de compra / venta
+    # ─────────────────────────────────────────
+    # PESTAÑA DE INVERSIÓN
+    # ─────────────────────────────────────────
+    with tab_inversion:
+        st.subheader("Buscador de Mercado")
 
-        with col_compra:
-            if st.button("🟩 COMPRAR", use_container_width=True): # Si presionas el botón VENDER
-                _ejecutar_compra(sesion, db, u_id, simbolo, cantidad, precio_actual)
+        opcion_busqueda = st.selectbox( # Selector inteligente que ofrece opciones de la lista o tipeo manual
+            "Despliega la lista para seleccionar o elige 'OTRO...' para tipear libremente:",
+            ["OTRO..."] + lista_completa_tickers
+        )
 
-        with col_venta:
-            if st.button("🟥 VENDER", use_container_width=True): # Si presionas el botón VENDER
-                _ejecutar_venta(sesion, db, u_id, simbolo, cantidad, precio_actual)
+        if opcion_busqueda == "OTRO...": # Tipeo manual del Ticker
+            simbolo_inv = st.text_input("Escribe el Ticker de la acción de interés:").strip().upper()
+        else:
+            simbolo_inv = opcion_busqueda # Ticker de los recomendados
 
-    # ── Columna derecha: Portafolio ───────────────────────────────────────────
-    with col_der:
-        st.subheader("📊 Mi Portafolio")
-        _mostrar_portafolio(sesion, motor)
+        if simbolo_inv:
+            with st.spinner(f"Consultando mercado: {simbolo_inv}..."):
+                precio_actual = motor.obtener_precio_actual(simbolo_inv) # Obtención del precio con la API
+                if precio_actual:
+                    periodo_inv = st.radio(
+                        "Rango de tiempo:",
+                        ["1d", "1mo", "1y"],
+                        format_func=lambda x: {"1d": "1 día", "1mo": "1 mes", "1y": "1 año"}[x],
+                        horizontal=True,
+                        key="radio_inv"
+                    )
+                    _mostrar_grafico(motor, simbolo_inv, periodo_inv)
 
-    # ── Historial de operaciones (abajo) ──────────────────────────────────────────────
-    with st.expander("📜 Ver Historial de Operaciones"):
-        _mostrar_historial(db, u_id)
+                    st.markdown("### 🛒 Calculadora de Operación")
 
+                    # Layout de Valor - Cantidad - Total
+                    c_valor, c_cant, c_total = st.columns(3)
+
+                    with c_valor:
+                        st.metric("Valor Actual", f"${precio_actual:,.2f}")
+                    with c_cant:
+                        cantidad = st.number_input("Cantidad de acciones:", min_value=1, step=1)
+                    with c_total:
+                        total_operacion = precio_actual * cantidad
+                        st.metric("Total Calculado", f"${total_operacion:,.2f}")
+
+                    # Botones
+                    st.markdown("<br>", unsafe_allow_html=True) # Espacio extra
+                    col_compra, col_venta = st.columns(2)
+
+                    with col_compra:
+                        if st.button("🟩 COMPRAR ACCIONES", use_container_width=True):
+                            _ejecutar_compra(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
+
+                    with col_venta:
+                        if st.button("🟥 VENDER ACCIONES", use_container_width=True):
+                            _ejecutar_venta(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
+
+                else:
+                    st.error(f"El símbolo '{simbolo_inv}' no fue encontrado en el mercado.") # Error de ticker inválido o fallo de la API
 
 # ─────────────────────────────────────────────────────────
 # Gráfico de precios históricos: pide a Yahoo Finance
 # ─────────────────────────────────────────────────────────
 
-"""Muestra el gráfico de tendencia del último mes. Recibe el motor de la API y el Ticker"""
-def _mostrar_grafico(motor, simbolo: str) -> None:
+"""Muestra el gráfico de tendencia del periodo seleccionado. Recibe el motor de la API, el Ticker y el Periodo"""
+def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
     
-    st.markdown(f"### 📈 Tendencia: {simbolo}")
+    nombres_periodo = {"1d": "Hoy (Intradía)", "1mo": "Último Mes", "1y": "Último Año"}
     
     try:
-        datos_hist = motor.obtener_datos_grafico(simbolo, periodo="1mo") # Petición al motor de precios el historial del último mes
+        datos_hist = motor.obtener_datos_grafico(simbolo, periodo=periodo) # Petición al motor de precios el historial del último mes
         if datos_hist: # Si existen los datos
             serie = pd.Series(datos_hist) # Conversión de datos crudos a una columna Pandas de datos
+            if periodo == "1d":
+                serie.index = pd.to_datetime(serie.index) # Intradía: muestra horas y minutos
+            else:
+                serie.index = pd.to_datetime(serie.index).date
             serie.index = pd.to_datetime(serie.index).date # Recorta las fechas para el eje X (solo día)
             
             variacion = ((serie.iloc[-1] - serie.iloc[0]) / serie.iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             
-            st.metric(
-                label="Precio respecto al mes anterior", 
+            st.metric( # Métrica dinámica sobre el gráfico que muestra el precio actual y la variación respecto al inicio del periodo
+                label=f"Variación respecto al {nombres_periodo.get(periodo, 'periodo')}", 
                 value=f"${serie.iloc[-1]:,.2f}", 
                 delta=f"${serie.iloc[-1]-serie.iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación entre hace 1 mes y hoy en absoluto y porcentaje
             )
 
             st.area_chart(serie, color="#29b5e8") # Gráfico con relleno de color celeste
 
-            st.caption(f"Variación del último mes: **{variacion:+.2f}%**") # Muestra la variación en porcentaje y con signo (+.2f)
         else:
-            st.warning(f"Sin historial disponible para {simbolo}.") # No hay datos
+            st.warning(f"Sin historial disponible para {simbolo} en el periodo '{periodo}'.") # No hay datos
     except Exception as e:
         st.error(f"Error procesando gráfico: {e}") # Fallo de la API/Internet
-
 
 # ─────────────────────────────────────────────────────────
 # Ejecución de Compra
@@ -215,8 +293,7 @@ def _mostrar_portafolio(sesion, motor) -> None:
         )
 
     else:
-        st.info("Tu portafolio está vacío. ¡Empieza a tradear!") # Si no hay acciones
-
+        st.info("Tu portafolio está vacío. ¡Empieza a tradear desde la Zona de Inversión!") # Si no hay acciones
 
 # ─────────────────────────────────────────────────────────
 # Gráfico del Historial de Operaciones
@@ -235,5 +312,5 @@ def _mostrar_historial(db, u_id: int) -> None:
             use_container_width=True # Estira el ancho
         )
     else:
-        st.info("Aún no has realizado ninguna operación.") # Si no hay opetaciones
+        st.info("Aún no has realizado ninguna operación. ¿Qué esperas?") # Si no hay opetaciones
 
