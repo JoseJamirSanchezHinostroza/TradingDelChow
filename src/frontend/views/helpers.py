@@ -66,7 +66,7 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                 delta=f"${df['Close'].iloc[-1]-df['Close'].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
             )
 
-            fig = go.Figure # Gráfico de velas japonesas con Plotly
+            fig = go.Figure() # Gráfico de velas japonesas con Plotly
 
             if all(col in df.columns for col in ["Open", "High", "Low", "Close"]): # Si YFinance brinda el DF completo OHLC dibuja las velas
                 fig.add_trace(go.Candlestick(
