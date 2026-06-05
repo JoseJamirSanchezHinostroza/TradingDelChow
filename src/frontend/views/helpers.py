@@ -79,15 +79,15 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     decreasing_line_color='#ef5350', # Rojo TradingView
                     name="Velas"
                 ))
-
-            fig.add_trace(go.Scatter( # Trazo cyan con puntos blancos para los Close
-                x=df.index,
-                y=df["Close"],
-                mode='lines+markers' if len(df) < 30 else 'lines', # Puntos si hay pocos datos
-                line=dict(color='#00b4d8', width=2.5),
-                marker=dict(color='#ffffff', size=5, line=dict(color='#00b4d8', width=2)), # Puntos blancos con borde cyan
-                name="Cierre"
-            ))
+            else:
+                fig.add_trace(go.Scatter(
+                    x=df.index,
+                    y=df["Close"],
+                    mode='lines+markers' if len(df) < 30 else 'lines', # Puntos si hay pocos datos
+                    line=dict(color='#00b4d8', width=2.5),
+                    marker=dict(color='#ffffff', size=5, line=dict(color='#00b4d8', width=2)), # Puntos blancos con borde cyan
+                    name="Cierre"
+                ))
 
             fig.update_layout( # Estilo profesional
                 template='plotly_dark',
