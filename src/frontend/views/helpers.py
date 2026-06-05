@@ -15,16 +15,16 @@ from yahoo_fin import stock_info as si # Yahoo Finance para obtener Tickers
 
 @st.cache_data(ttl=86400) # Se guarda en caché por 24 horas para priorizar velocidad
 
-def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del ecosistema Yahoo Finance
+def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del FTP público filtrada para compatibilizar con Yahoo Finance
     try:
-        nasdaq = si.tickers_nasdaq()
-        sp500 = si.tickers_sp500()
-        dow = si.tickers_dow()
+        url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt"
+        df = pd.read_csv(url, sep='|')
 
-        todos_los_tickers = list(set(nasdaq + sp500 + dow)) # Unión de las listas y eliminación de duplicados con set()
-        todos_limpios = [str(t).upper() for t in todos_los_tickers if pd.notna(t)]
+        df = df[df['Test Issue'] == 'N']
+        tickers_crudos = df['Symbol'].dropna().astype(str).tolist()
+        tickers_limpios = [t for t in tickers_crudos if t.isalpha() and len(t) <= 5] # Solo se conservan tickers alfabéticos hasta 5 letras
 
-        return sorted(todos_limpios) # Retorna la lista ordenada alfabéticamente
+        return sorted(tickers_limpios) # Retorna la lista ordenada alfabéticamente
     
     except Exception as e:
         st.error(f"Error al obtener los tickers: {e}")
