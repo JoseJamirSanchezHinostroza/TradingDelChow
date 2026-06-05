@@ -99,11 +99,12 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     gridcolor='#1c2541',       # Rejilla sutil azulada/neon
                     linecolor='#1c2541',
                     rangeslider=dict(visible=False), # Oculta la barra de abajo que quita espacio
-                    type='category' if periodo != "1d" else 'date', # Category en periodos diarios para colapsar días vacíos
-                    tickvals=df.index if periodo != "1d" else None, # En intradía, deja que Plotly maneje las fechas automáticamente
-                    ticktext=[d.strftime('%b %d') for d in df.index] if periodo != "1d" else None, # Formato de fecha personalizado para periodos largos
-                    nticks=8 if periodo != "1d" else None, # Ajuste de intervalos de etiquetas para evitar amontonamiento de fechas
-                    tickangle=0 # Mantiene las fechas perfectamente horizontales y limpias
+                    type='category', 
+                    tickvals=df.index, 
+                    ticktext=[d.strftime('%b %d') for d in df.index],
+                    tickformat='%b %d' if periodo == "1mo" else ('%H:%M' if periodo == "1d" else None),
+                    nticks=8,
+                    tickangle=0
                 ),
                 yaxis=dict(
                     showgrid=True, 
