@@ -87,14 +87,6 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str) -> None:
                     decreasing_line_color='#ef5350', # Rojo TradingView
                     name="Precio"
                 ))
-            else:
-                fig.add_trace(go.Scatter(
-                    x=df.index,
-                    y=df[col_cierre],
-                    mode='lines+markers' if len(df) < 15 else 'lines', # Puntos si hay pocos datos
-                    line=dict(color='#00b4d8', width=3),
-                    name="Cierre"
-                ))
 
             fig.update_layout( # Estilo profesional
                 template='plotly_dark',
