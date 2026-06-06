@@ -7,13 +7,16 @@ import time # Librería de tiempo
 import pandas as pd # Pandas para tablas de datos
 import streamlit as st # Streamlit como motor gráfico de la página web
 
-from views.helpers import (
-    _mostrar_grafico,
+from views.helpers.auxiliares import (
     _ejecutar_compra,
     _ejecutar_venta,
     _mostrar_portafolio,
     _mostrar_historial,
     _obtener_todos_los_tickers
+)
+
+from views.helpers.grafico import (
+    _mostrar_grafico
 )
 
 # ─────────────────────────────────────────────────────────
