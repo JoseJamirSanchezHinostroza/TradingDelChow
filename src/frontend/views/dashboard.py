@@ -134,7 +134,7 @@ def mostrar_pantalla_dashboard() -> None:
                         cantidad = st.number_input("Cantidad de acciones:", min_value=1, step=1)
                     with c_total:
                         total_operacion = precio_actual * cantidad
-                        total_operacion=calcular_comision(total_operacion) # Comisión del 0.5%
+                        total_operacion=total_operacion+calcular_comision(total_operacion) # Comisión del 0.5%
                         st.metric("Total Calculado", f"${total_operacion:,.2f}")
 
                     # Botones
