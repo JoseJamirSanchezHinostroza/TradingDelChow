@@ -36,10 +36,9 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str, ctx: str = "default") ->
             variacion = ((df[col_cierre].iloc[-1] - df[col_cierre].iloc[0]) / df[col_cierre].iloc[0]) * 100 # Cálculo de la variacion de precios entre hoy[-1] y hace 1 mes[0]
             
             st.metric( # Métrica dinámica sobre el gráfico que muestra el precio actual y la variación respecto al inicio del periodo
-                label=f"Variación respecto al inicio del periodo {nombres_periodo[periodo]}", 
+                label=f"Variación respecto al inicio del periodo {nombres_periodo[periodo]} · {simbolo}", 
                 value=f"${df[col_cierre].iloc[-1]:,.2f}", # Precio final del periodo
-                delta=f"${df[col_cierre].iloc[-1]-df[col_cierre].iloc[0]:,.2f} ({variacion:+.2f}%)", # Variación en absoluto y porcentaje
-                key=f"{ctx}_{simbolo}_{periodo}_metric"
+                delta=f"${df[col_cierre].iloc[-1]-df[col_cierre].iloc[0]:,.2f} ({variacion:+.2f}%)" # Variación en absoluto y porcentaje
             )
 
             fig = go.Figure() # Gráfico de velas japonesas con Plotly
