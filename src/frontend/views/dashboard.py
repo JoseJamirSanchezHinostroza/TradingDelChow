@@ -226,7 +226,7 @@ def _tab_portafolio(sesion, motor, db, u_id: int) -> None:
                 label_visibility="collapsed",
             )
 
-        _mostrar_grafico(motor, accion_seleccionada, periodo_portafolio)
+        _mostrar_grafico(motor, accion_seleccionada, periodo_portafolio, ctx="port")
 
     st.markdown("---")
 
@@ -298,7 +298,7 @@ def _tab_inversion(sesion, motor, db, u_id: int, lista_tickers: list) -> None:
                 label_visibility="collapsed",
             )
 
-            _mostrar_grafico(motor, simbolo_inv, periodo_inv)
+            _mostrar_grafico(motor, simbolo_inv, periodo_inv, ctx="inv")
 
             # ── Calculadora de operación ──────────────────────────────────────
             st.markdown("""
