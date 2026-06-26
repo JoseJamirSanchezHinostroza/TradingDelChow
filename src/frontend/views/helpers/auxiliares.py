@@ -1,152 +1,209 @@
 """
 frontend/views/helpers/auxiliares.py - TradeaYa!
-Definición de funciones auxiliares para la construcción del Dashboard
+Funciones auxiliares para la construcción del Dashboard.
 """
 
-import time # Librería de tiempo
-import pandas as pd # Pandas para tablas de datos
-import streamlit as st # Streamlit como motor gráfico de la página web
+import time
+import pandas as pd
+import streamlit as st
+
 
 # ─────────────────────────────────────────────────────────
-# FUNCIÓN QUE OBTIENE TODOS LOS TICKERS DISPONIBLES DEL MERCADO
+# TICKERS DISPONIBLES
 # ─────────────────────────────────────────────────────────
 
-@st.cache_data(ttl=86400) # Se guarda en caché por 24 horas para priorizar velocidad
-
-def _obtener_todos_los_tickers() -> list: # Descarga los Tickers del servidor FileTransferProtocol público filtrada para compatibilizar con Yahoo Finance
+@st.cache_data(ttl=86400)
+def _obtener_todos_los_tickers() -> list:
+    """Descarga los tickers del NASDAQ. Cachea por 24 h."""
     try:
         url = "ftp://ftp.nasdaqtrader.com/SymbolDirectory/nasdaqtraded.txt"
-        df = pd.read_csv(url, sep='|')
-
-        df = df[df['Test Issue'] == 'N']
-        tickers_crudos = df['Symbol'].dropna().astype(str).tolist()
-        tickers_limpios = [t for t in tickers_crudos if t.isalpha() and len(t) <= 5] # Solo se conservan tickers alfabéticos hasta 5 letras
-
-        return sorted(tickers_limpios) # Retorna la lista ordenada alfabéticamente
-    
+        df  = pd.read_csv(url, sep="|")
+        df  = df[df["Test Issue"] == "N"]
+        tickers_crudos  = df["Symbol"].dropna().astype(str).tolist()
+        tickers_limpios = [t for t in tickers_crudos if t.isalpha() and len(t) <= 5]
+        return sorted(tickers_limpios)
     except Exception as e:
-        st.error(f"Error al obtener los tickers: {e}")
-        return ["AAPL", "AMD", "AMZN", "MSFT", "NVDA", "TSLA"] # Lista de Tickers respaldo por si falta Internet
+        st.error(f"Error al obtener tickers: {e}")
+        return ["AAPL", "AMD", "AMZN", "MSFT", "NVDA", "TSLA"]
 
 
 # ─────────────────────────────────────────────────────────
-# Ejecución de Compra
+# EJECUCIÓN DE COMPRA
 # ─────────────────────────────────────────────────────────
-"""Valida y ejecuta una compra, la guarda en DB. Recibe la sesión, DataBase, ID de usuario, Ticker, cantidad a comprar y precio actual."""
+
 def _ejecutar_compra(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_actual: float) -> None:
-    
-    if precio_actual <= 0: # Barrera por si el precio es inválido
-        st.error("Obtén el precio del ticker antes de comprar.")
+    """Valida y ejecuta una compra; la persiste en DB."""
+    if precio_actual <= 0:
+        st.error("Precio no disponible. Consulta el ticker antes de operar.")
         return
 
-    costo_total = precio_actual * cantidad # Cálculo del precio
-    if sesion.saldo < costo_total: # Si el saldo de la sesión no alcanza
-        st.error("Saldo insuficiente.")
+    costo_total = precio_actual * cantidad
+    if sesion.saldo < costo_total:
+        falta = costo_total - sesion.saldo
+        st.error(f"Saldo insuficiente. Te faltan ${falta:,.2f}.")
         return
 
-    nuevo_saldo = sesion.saldo - costo_total # Cálculo del saldo sobrante
-    if db.guardar_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo): # Intento de guardado de la compra en la DataBase
-        sesion.comprar(simbolo, cantidad, precio_actual, time.time()) # Actualiza la memoria de la sesión: suma las acciones al portafolio
-        st.toast(f"✅ Compra de {cantidad} × {simbolo} exitosa.", icon="🟩")
-        time.sleep(1.5) # Congela el programa 1 segundo para leer el mensaje de éxito
-        st.rerun() # Reinicio de pantalla: actualización de datos
+    nuevo_saldo = sesion.saldo - costo_total
+    if db.guardar_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo):
+        sesion.comprar(simbolo, cantidad, precio_actual, time.time())
+        st.toast(f"✅ {cantidad} × {simbolo} compradas a ${precio_actual:,.2f}", icon="🟩")
+        time.sleep(1.2)
+        st.rerun()
     else:
-        st.error("Error al guardar la compra en la base de datos.")
+        st.error("Error al persistir la compra. Intenta de nuevo.")
 
 
 # ─────────────────────────────────────────────────────────
-# Ejecución de Venta
+# EJECUCIÓN DE VENTA
 # ─────────────────────────────────────────────────────────
-"""Valida y ejecuta una venta, la guarda en DB. Recibe la sesión, DataBase, ID de usuario, Ticker, cantidad a vender y precio actual."""
+
 def _ejecutar_venta(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_actual: float) -> None:
-    
-    exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time()) # La sesión define el éxito de la venta (cantidad suficiente)
+    """Valida y ejecuta una venta; la persiste en DB."""
+    exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time())
 
     if exito:
-        if db.guardar_venta(u_id, simbolo, cantidad, precio_actual, sesion.saldo): # Intento de guardado de la venta en la DataBase
-            st.toast(f"✅ Venta registrada. {msg}", icon="🟥")
-            time.sleep(1.5) # Congela el programa 1 segundo para leer el mensaje de éxito
-            st.rerun() # Reinicio de pantalla: actualización de datos
+        if db.guardar_venta(u_id, simbolo, cantidad, precio_actual, sesion.saldo):
+            st.toast(f"✅ {cantidad} × {simbolo} vendidas. {msg}", icon="🟥")
+            time.sleep(1.2)
+            st.rerun()
         else:
-            st.error("Error al guardar la venta en la base de datos.")
+            st.error("Error al persistir la venta. Intenta de nuevo.")
     else:
-        st.error(msg) # Falta de acciones
+        st.error(msg)
 
 
 # ─────────────────────────────────────────────────────────
-# Gráfico del Portafolio:
+# PORTAFOLIO: MÉTRICAS + TABLA DE POSICIONES
 # ─────────────────────────────────────────────────────────
-"""Muestra la tabla de posiciones abiertas y sus métricas. Recibe la sesión y el motor de la API"""
+
 def _mostrar_portafolio(sesion, motor) -> None:
-    
-    precios_vivos = { # Dictionary Comprehension: Creación de diccionarios (precios_vivos) a partir de iteración
-        s: p # En cada iteración, s adoptará el nombre de una acción
-        for s in sesion.portafolio # Recorre el inventario de acciones (portafolio)
-        if (p := motor.obtener_precio_actual(s)) is not None # Llama a la API para obtener precios en vivo, guardados temporalmente en p (Operador Morsa :=). Se asegura de tomar precios no vacíos
+    """Muestra las métricas de cuenta y la tabla de posiciones abiertas."""
+
+    # Precios en vivo para todas las posiciones
+    precios_vivos = {
+        s: p
+        for s in sesion.portafolio
+        if (p := motor.obtener_precio_actual(s)) is not None
     }
 
-    resumen = sesion.get_resumen(precios_vivos) # Delega los precios frescos a la sesión para obtener el resumen: Ganancia o Pérdida
-    costo_total = sum(p["cantidad"] * p["precio_compra"] for p in resumen["posiciones"]) # Lo que costaron las acciones actuales
+    resumen    = sesion.get_resumen(precios_vivos)
+    costo_inv  = sum(p["cantidad"] * p["precio_compra"] for p in resumen["posiciones"])
+    ganancia   = resumen["valor_portafolio"] - costo_inv
+    retorno_td = resumen["patrimonio_total"] - 10_000.00
 
-    k1, k2, k3 = st.columns(3) # División en 3 bloques para los siguientes saldos y diferencias:
+    # ── Fila de métricas ──────────────────────────────────────────────────────
+    k1, k2, k3, k4 = st.columns(4)
+
     k1.metric(
-        label="Saldo Disponible",
-        value=f"${resumen['saldo_disponible']:,.2f}"
+        label="Saldo disponible",
+        value=f"${resumen['saldo_disponible']:,.2f}",
     )
     k2.metric(
-        label="Valor Acciones",
+        label="Valor del portafolio",
         value=f"${resumen['valor_portafolio']:,.2f}",
-        delta=f"${resumen['valor_portafolio'] - costo_total:,.2f}" if costo_total > 0 else None # Diferencia entre el valor actual de las acciones menos lo que costaron
+        delta=f"${ganancia:,.2f}" if costo_inv > 0 else None,
     )
     k3.metric(
-        label="Patrimonio Total",
+        label="Patrimonio total",
         value=f"${resumen['patrimonio_total']:,.2f}",
-        delta=f"${resumen['patrimonio_total'] - 10000.00:,.2f} Total" # Diferencia entre el patrimonio actual e inicial
+        delta=f"${retorno_td:,.2f}",
+    )
+    k4.metric(
+        label="Operaciones realizadas",
+        value=resumen["total_operaciones"],
     )
 
+    st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-    if resumen["posiciones"]: # Verifica la presencia de al menos 1 acción
-        st.write("### Posiciones Abiertas")
+    # ── Tabla de posiciones ───────────────────────────────────────────────────
+    if resumen["posiciones"]:
+        st.markdown("""
+        <p style="
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: #7b8fa6;
+            margin-bottom: 0.5rem;
+        ">Posiciones abiertas</p>
+        """, unsafe_allow_html=True)
 
-        df = pd.DataFrame(resumen["posiciones"]) # Ingresa los datos en un DataFrame Pandas
-        
-        df = df.rename(columns={ # Renombra las columnas del resumen
-            "simbolo": "Símbolo",
-            "cantidad": "Cantidad",
-            "precio_compra": "Precio Promedio",
-            "precio_actual": "Precio Actual",
-            "rendimiento_%": "Rendimiento"
+        df = pd.DataFrame(resumen["posiciones"])
+        df = df.rename(columns={
+            "simbolo"       : "Símbolo",
+            "cantidad"      : "Cant.",
+            "precio_compra" : "P. Compra",
+            "precio_actual" : "P. Actual",
+            "rendimiento_%"  : "Rend. %",
         })
+        df.index = range(1, len(df) + 1)
 
-        df.index = range(1, len(df) + 1) #Ajuste de índice de enumeración (la posición más antigua empieza en 1)
-        st.dataframe( # Mostrar tabla con formato de moneda ($) y porcentaje (%)
+        st.dataframe(
             df.style.format({
-                "Precio Promedio" : "${:.2f}",
-                "Precio Actual" : "${:.2f}",
-                "Rendimiento" : "{:.2f}%",
-            }),
-            use_container_width=True, # Estira el ancho
+                "P. Compra" : "${:.2f}",
+                "P. Actual" : "${:.2f}",
+                "Rend. %"   : "{:+.2f}%",
+            }).map(
+                lambda v: "color: #26a69a" if isinstance(v, str) and v.startswith("+") else
+                          ("color: #ef5350" if isinstance(v, str) and v.startswith("-") else ""),
+                subset=["Rend. %"],
+            ),
+            use_container_width=True,
+            height=min(80 + len(df) * 38, 400),
         )
-
     else:
-        st.info("Tu portafolio está vacío. ¡Empieza a tradear desde la Zona de Inversión!") # Si no hay acciones
+        st.markdown("""
+        <div style="
+            background-color: #0d1b2a;
+            border: 1px solid #1c2f45;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+        ">
+            <p style="color: #7b8fa6; font-size: 0.85rem; margin:0;">
+                Tu portafolio está vacío. Ve a <strong style="color:#00b4d8">Zona de Inversión</strong> para comenzar.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
 
 # ─────────────────────────────────────────────────────────
-# Gráfico del Historial de Operaciones
+# HISTORIAL DE OPERACIONES
 # ─────────────────────────────────────────────────────────
-"""Muestra el historial completo de transacciones del usuario. Recibe la DataBase y el ID de usuario."""
+
 def _mostrar_historial(db, u_id: int) -> None:
-    
-    historial = db.obtener_historial(u_id) # Extrae la información del usuario (ID) del DataBase
-    if historial: # Si hay datos...
-        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cantidad", "Precio", "Fecha"]) # DataFrame de Pandas que ordena lso datos por columnas
-        df.index = range(len(df), 0, -1) # Ajuste de índice de enumeración (la operación más antigua empieza por 1)
-        st.dataframe( # Mostrar la columna Precio con formato de moneda ($)
-            df.style.format({
-                "Precio": "${:.2f}"
-            }),
-            use_container_width=True # Estira el ancho
+    """Muestra el historial completo de transacciones del usuario."""
+    historial = db.obtener_historial(u_id)
+
+    if historial:
+        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
+
+        # Color por tipo de operación
+        def _color_tipo(val):
+            if val == "COMPRA":
+                return "color: #26a69a; font-weight: 600"
+            if val == "VENTA":
+                return "color: #ef5350; font-weight: 600"
+            return ""
+
+        df.index = range(len(df), 0, -1)
+        st.dataframe(
+            df.style.format({"Precio": "${:.2f}"}).map(_color_tipo, subset=["Tipo"]),
+            use_container_width=True,
+            height=min(80 + len(df) * 38, 420),
         )
     else:
-        st.info("Aún no has realizado ninguna operación. ¿Qué esperas?") # Si no hay opetaciones
+        st.markdown("""
+        <div style="
+            background-color: #0d1b2a;
+            border: 1px solid #1c2f45;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+        ">
+            <p style="color: #7b8fa6; font-size: 0.85rem; margin:0;">
+                Aún no has realizado ninguna operación.
+            </p>
+        </div>
+        """, unsafe_allow_html=True)

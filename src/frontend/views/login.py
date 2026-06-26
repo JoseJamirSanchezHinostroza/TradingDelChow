@@ -3,49 +3,126 @@ frontend/views/login.py - TradeaYa!
 Pantalla de inicio de sesión y registro de nuevos usuarios.
 """
 
-import time # Librería tiempo
-import streamlit as st # Streamlit como motor gráfico de la página web
+import time
+import streamlit as st
 
 
 def mostrar_pantalla_login() -> None:
-    st.title("🔐 Bienvenido a TradeaYa!")
-    st.subheader("Inicia sesión para acceder a tu terminal de inversión")
 
-    db = st.session_state.db # Extrae la conexión de la memoria de sesión a la DB .
+    db = st.session_state.db
 
-    tab_login, tab_registro = st.tabs(["Iniciar Sesión", "Registrarse"]) # Genera 2 pestañas navegables distintas con tabs: Inicio de sesión o registro
+    # ── Hero header ──────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="
+        text-align: center;
+        padding: 3rem 1rem 2rem;
+    ">
+        <div style="
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-bottom: 0.5rem;
+        ">
+            <span style="font-size: 2rem;">📈</span>
+            <span style="
+                font-family: 'Inter', sans-serif;
+                font-size: 2rem;
+                font-weight: 700;
+                color: #e0e6f0;
+                letter-spacing: -0.02em;
+            ">TradeaYa!</span>
+        </div>
+        <p style="
+            font-family: 'Inter', sans-serif;
+            font-size: 0.9rem;
+            color: #7b8fa6;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0;
+        ">Terminal de inversión simulada · Mercados reales</p>
+        <div style="
+            width: 40px;
+            height: 2px;
+            background: linear-gradient(90deg, #26a69a, #00b4d8);
+            margin: 1rem auto 0;
+            border-radius: 2px;
+        "></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    # ── PESTAÑA 1: INICIO DE SESIÓN ────────────────────────────────────────────────────────
-    with tab_login:
-        """ Caja de texto para ingresar el correo (key porque hay 1 caja email en cada tab, evita la confusión del programa) y contraseña (type para ocultar lo escrito) """
-        email    = st.text_input("Correo electrónico", key="login_email")
-        password = st.text_input("Contraseña", type="password", key="login_pass")
+    # ── Panel central ─────────────────────────────────────────────────────────
+    _, col_form, _ = st.columns([1, 1.2, 1])
 
-        if st.button("Ingresar", type="primary"): # Si se presiona el botón Ingresar
-            usuario = db.verificar_login(email, password) # Se revisa si hay un match con un par email-password de la DataBase (tabla usuarios)
-            if usuario: # Devolvió match (credenciales correctas)
-                st.session_state.usuario_id     = usuario[0] # Guarda en la memoria de sesión el ID del usuario
-                st.session_state.usuario_nombre = usuario[1] # // el nombre del usuario
-                st.session_state.saldo_actual   = usuario[2] # // el saldo actual del usuario
-                st.success(f"¡Bienvenido de vuelta, {usuario[1]}!") # Bienvenida al usuario
-                time.sleep(1) # Congelación para visualizar el mensaje
-                st.rerun() # Refresco para actualización
-            else:
-                st.error("Credenciales incorrectas. Intenta de nuevo.") # Cuadro rojo de Error
+    with col_form:
+        st.markdown("""
+        <div style="
+            background-color: #0d1b2a;
+            border: 1px solid #1c2f45;
+            border-radius: 12px;
+            padding: 2rem 2rem 1.5rem;
+        ">
+        """, unsafe_allow_html=True)
 
-    # ── PESTAÑA 2: REGISTRO ──────────────────────────────────────────────────────────────
-    with tab_registro:
-        """ Creación de 3 campos para registro (Nombre-Email-Contraseña). Utiliza key para evitar confusión con la otra tab. """
-        nombre   = st.text_input("Nombre completo",       key="reg_nombre")
-        email_r  = st.text_input("Correo electrónico",    key="reg_email")
-        password_r = st.text_input("Contraseña", type="password", key="reg_pass")
+        tab_login, tab_registro = st.tabs(["Iniciar sesión", "Crear cuenta"])
 
-        if st.button("Crear Cuenta", type="primary"): # Si se presiona el botón Crear Cuenta
-            if nombre and email_r and password_r: # No hay vacíos en ningún campo
-                exito, mensaje = db.registrar_usuario(nombre, email_r, password_r) # Intento de insertación de la nueva fila a la DataBase
-                if exito:
-                    st.success("¡Cuenta creada! Ve a 'Iniciar Sesión' para entrar.") # Registro completo, DB devolvió True. Te invita a iniciar sesión.
+        # ── TAB LOGIN ────────────────────────────────────────────────────────
+        with tab_login:
+            st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+            email    = st.text_input("Correo electrónico", key="login_email", placeholder="tu@correo.com")
+            password = st.text_input("Contraseña", type="password", key="login_pass", placeholder="••••••••")
+            st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
+
+            if st.button("Ingresar", type="primary", use_container_width=True):
+                if not email or not password:
+                    st.warning("Completa ambos campos.")
                 else:
-                    st.error(mensaje) # Error (correo ya usado), muestra mensaje de error de la DB, que devolvió False
-            else:
-                st.warning("Por favor, completa todos los campos.") # Se dejó un campo en blanco
+                    usuario = db.verificar_login(email, password)
+                    if usuario:
+                        st.session_state.usuario_id     = usuario[0]
+                        st.session_state.usuario_nombre = usuario[1]
+                        st.session_state.saldo_actual   = usuario[2]
+                        st.success(f"Bienvenido de vuelta, {usuario[1]}.")
+                        time.sleep(0.8)
+                        st.rerun()
+                    else:
+                        st.error("Credenciales incorrectas.")
+
+        # ── TAB REGISTRO ─────────────────────────────────────────────────────
+        with tab_registro:
+            st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
+            nombre     = st.text_input("Nombre completo",    key="reg_nombre",  placeholder="Ana García")
+            email_r    = st.text_input("Correo electrónico", key="reg_email",   placeholder="tu@correo.com")
+            password_r = st.text_input("Contraseña",         key="reg_pass",    placeholder="Mín. 6 caracteres", type="password")
+            st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
+
+            if st.button("Crear cuenta", type="primary", use_container_width=True):
+                if not all([nombre, email_r, password_r]):
+                    st.warning("Completa todos los campos.")
+                elif len(password_r) < 6:
+                    st.warning("La contraseña debe tener al menos 6 caracteres.")
+                else:
+                    exito, mensaje = db.registrar_usuario(nombre, email_r, password_r)
+                    if exito:
+                        st.success("Cuenta creada. Inicia sesión en la pestaña anterior.")
+                    else:
+                        st.error(mensaje)
+
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # ── Footer ────────────────────────────────────────────────────────────────
+    st.markdown("""
+    <div style="
+        text-align: center;
+        margin-top: 2.5rem;
+        padding-bottom: 1rem;
+    ">
+        <p style="
+            font-family: 'Inter', sans-serif;
+            font-size: 0.72rem;
+            color: #3a4f63;
+            letter-spacing: 0.05em;
+        ">
+            SOLO PARA FINES EDUCATIVOS · DATOS REALES, DINERO SIMULADO
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
