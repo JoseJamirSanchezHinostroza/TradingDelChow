@@ -11,8 +11,6 @@
 ### .Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización. El sistema, sin embargo, podría permitir almacenar órdenes de compra para ejecutarlas tan pronto como el mercado vuelva a abrirse.
 ### .Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
 ### .Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
-### .Ejecución de Órdenes: El programa podría enseñar al usuario a ordenar la compra de acciones si es que el precio va debajo o sobre límites que se establecieron en la misma orden.
-### .Gestión de riesgo: Si la Ejecución de órdenes no está activada, cuando el precio cae por debajo de un cierto límite, el sistema vendería automáticamente para proteger capital y tiraría una advertencia respecto a esto. En contrapunto, si sube por encima de un porcentaje, el sistema empezará a sugerir vender para obtener ganancias, y vendería automáticamente si empieza a caer para asegurar ganancias.
 
 ## 3. Distribución del desarrollo por integrante:
 ### Abad David(BackEnd): Se encargará del servidor y la gestión de datos necesarios para operar, además de establecer y mantener la conexión con las API's de Alpaca y Yahoo Finance.
