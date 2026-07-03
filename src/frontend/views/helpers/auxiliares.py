@@ -139,17 +139,21 @@ def _mostrar_portafolio(sesion, motor) -> None:
         })
         df.index = range(1, len(df) + 1)
 
+        # Formatters seguros: manejan None cuando el precio no está disponible
+        fmt_precio = lambda v: f"${v:,.2f}" if v is not None else "N/A"
+        fmt_rend   = lambda v: f"{v:+.2f}%" if v is not None else "N/A"
+
         st.dataframe(
             df.style.format({
-                "P. Compra" : "${:.2f}",
-                "P. Actual" : "${:.2f}",
-                "Rend. %"   : "{:+.2f}%",
+                "P. Compra" : fmt_precio,
+                "P. Actual" : fmt_precio,
+                "Rend. %"   : fmt_rend,
             }).map(
                 lambda v: "color: #26a69a" if isinstance(v, str) and v.startswith("+") else
                           ("color: #ef5350" if isinstance(v, str) and v.startswith("-") else ""),
                 subset=["Rend. %"],
             ),
-            use_container_width=True,
+            width="stretch",
             height=min(80 + len(df) * 38, 400),
         )
     else:
@@ -190,7 +194,7 @@ def _mostrar_historial(db, u_id: int) -> None:
         df.index = range(len(df), 0, -1)
         st.dataframe(
             df.style.format({"Precio": "${:.2f}"}).map(_color_tipo, subset=["Tipo"]),
-            use_container_width=True,
+            width="stretch",
             height=min(80 + len(df) * 38, 420),
         )
     else:
