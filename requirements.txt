@@ -16,3 +16,4 @@ setuptools
 wheel
 scikit-learn
 numpy
+plotly
