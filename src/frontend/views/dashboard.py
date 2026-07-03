@@ -136,7 +136,7 @@ def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
 
     st.sidebar.markdown("---")
 
-    if st.sidebar.button("Cerrar sesión", use_container_width=True):
+    if st.sidebar.button("Cerrar sesión", width="stretch"):
         st.session_state.usuario_id = None
         st.session_state.pop("db_sincronizada", None)
         st.rerun()
@@ -357,7 +357,7 @@ def _tab_inversion(sesion, motor, db, u_id: int, lista_tickers: list) -> None:
                 }
                 </style>
                 """, unsafe_allow_html=True)
-                if st.button("▲ COMPRAR", use_container_width=True, key="btn_comprar"):
+                if st.button("▲ COMPRAR", width="stretch", key="btn_comprar"):
                     _ejecutar_compra(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
 
             with col_venta:
@@ -376,7 +376,7 @@ def _tab_inversion(sesion, motor, db, u_id: int, lista_tickers: list) -> None:
                 }
                 </style>
                 """, unsafe_allow_html=True)
-                if st.button("▼ VENDER", use_container_width=True, key="btn_vender"):
+                if st.button("▼ VENDER", width="stretch", key="btn_vender"):
                     _ejecutar_venta(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
 
             # Posición actual en ese ticker (si existe)
