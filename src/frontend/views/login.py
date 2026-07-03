@@ -3,8 +3,18 @@ frontend/views/login.py - TradeaYa!
 Pantalla de inicio de sesión y registro de nuevos usuarios.
 """
 
+import re
 import time
 import streamlit as st
+
+
+
+# ── Validación de email ───────────────────────────────────────────────────────
+_RE_EMAIL = re.compile(r"^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$")
+
+def _email_valido(email: str) -> bool:
+    """Devuelve True si el email tiene formato válido (RFC 5322 simplificado)."""
+    return bool(_RE_EMAIL.match(email.strip()))
 
 
 def mostrar_pantalla_login() -> None:
@@ -81,6 +91,8 @@ def mostrar_pantalla_login() -> None:
                         st.session_state.usuario_id     = usuario[0]
                         st.session_state.usuario_nombre = usuario[1]
                         st.session_state.saldo_actual   = usuario[2]
+                        # Persistir uid en query_params para sobrevivir reruns de Cloud
+                        st.query_params["uid"] = str(usuario[0])
                         st.success(f"Bienvenido de vuelta, {usuario[1]}.")
                         time.sleep(0.8)
                         st.rerun()
@@ -98,6 +110,8 @@ def mostrar_pantalla_login() -> None:
             if st.button("Crear cuenta", type="primary", use_container_width=True):
                 if not all([nombre, email_r, password_r]):
                     st.warning("Completa todos los campos.")
+                elif not _email_valido(email_r):
+                    st.warning("Ingresa un correo electrónico válido (ej: nombre@dominio.com).")
                 elif len(password_r) < 6:
                     st.warning("La contraseña debe tener al menos 6 caracteres.")
                 else:
