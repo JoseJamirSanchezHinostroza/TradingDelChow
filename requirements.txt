@@ -17,3 +17,4 @@ wheel
 scikit-learn
 numpy
 plotly
+psycopg2-binary
