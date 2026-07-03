@@ -4,6 +4,7 @@ Capa de acceso a datos: usuarios, portafolio y transacciones.
 Toda operación con SQLite pasa por aquí.
 """
 
+import os
 import sqlite3
 from datetime import datetime
 import pytz
@@ -13,7 +14,8 @@ class DatabaseManager:
     """Gestiona la conexión y operaciones sobre la base de datos SQLite."""
 
     def __init__(self, db_name: str = "tradeaya.db") -> None:
-        self.db_name = db_name
+        self.db_url = os.getenv("DATABASE_URL") # Supabase en Cloud
+        self.db_name = db_name # SQLite en Local
         self._crear_tablas()
 
     # ─────────────────────────────────────────────────────────
@@ -22,7 +24,10 @@ class DatabaseManager:
 
     def conectar(self) -> sqlite3.Connection:
         """Devuelve una conexión con timeout para evitar 'database is locked'."""
-        return sqlite3.connect(self.db_name, timeout=10)
+         if self.db_url:                                   # Si hay Cloud → PostgreSQL
+             import psycopg2
+             return psycopg2.connect(self.db_url)
+        return sqlite3.connect(self.db_name, timeout=10) # Si no hay Cloud → SQLite nomás
 
     # ─────────────────────────────────────────────────────────
     # UTILIDAD INTERNA
