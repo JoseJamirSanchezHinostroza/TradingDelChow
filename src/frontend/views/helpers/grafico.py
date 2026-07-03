@@ -148,7 +148,7 @@ def _mostrar_grafico(motor, simbolo: str, periodo: str, ctx: str = "default") ->
             )
 
             # Renderización en Streamlit
-            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key=f"{ctx}_{simbolo}_{periodo}")
+            st.plotly_chart(fig, width="stretch", config={'displayModeBar': False}, key=f"{ctx}_{simbolo}_{periodo}")
             st.caption(f"Variación del periodo: **{variacion:+.2f}%**")
 
         else:
