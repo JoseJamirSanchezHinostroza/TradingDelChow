@@ -175,7 +175,7 @@ def _mostrar_grafico_ml(
 
     st.plotly_chart(
         fig,
-        use_container_width=True,
+        width="stretch",
         config={"displayModeBar": False},
         key=f"{ctx}_{ticker}_ml_chart",
     )
