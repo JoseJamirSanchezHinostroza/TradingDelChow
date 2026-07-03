@@ -15,7 +15,8 @@ from views.helpers.auxiliares import (
     _mostrar_historial,
     _obtener_todos_los_tickers,
 )
-from views.helpers.grafico import _mostrar_grafico
+from views.helpers.grafico  import _mostrar_grafico
+from views.prediccion       import mostrar_pantalla_prediccion
 
 
 # ─────────────────────────────────────────────────────────
@@ -459,10 +460,17 @@ def mostrar_pantalla_dashboard() -> None:
     _renderizar_sidebar(sesion, motor, u_id)
     _renderizar_header()
 
-    tab_portafolio, tab_inversion = st.tabs(["📊  Portafolio", "⚡  Zona de Inversión"])
+    tab_portafolio, tab_inversion, tab_prediccion = st.tabs([
+        "📊  Portafolio",
+        "⚡  Zona de Inversión",
+        "🤖  Predicción ML",
+    ])
 
     with tab_portafolio:
         _tab_portafolio(sesion, motor, db, u_id)
 
     with tab_inversion:
         _tab_inversion(sesion, motor, db, u_id, lista_tickers)
+
+    with tab_prediccion:
+        mostrar_pantalla_prediccion(lista_tickers)
