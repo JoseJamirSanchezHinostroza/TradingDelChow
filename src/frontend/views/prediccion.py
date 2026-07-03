@@ -244,7 +244,7 @@ def mostrar_pantalla_prediccion(lista_tickers: list) -> None:
     analizar = st.button(
         f"🤖 Analizar {ticker_ml} con SVC",
         type="primary",
-        use_container_width=False,
+        width="content",
         key="ml_btn_analizar",
     )
 
