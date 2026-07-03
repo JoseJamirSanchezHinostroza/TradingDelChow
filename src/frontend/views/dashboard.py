@@ -139,6 +139,8 @@ def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
     if st.sidebar.button("Cerrar sesión", width="stretch"):
         st.session_state.usuario_id = None
         st.session_state.pop("db_sincronizada", None)
+        # Limpiar uid de query_params para que no se restaure la sesión
+        st.query_params.clear()
         st.rerun()
 
 
