@@ -323,10 +323,29 @@ if "loader" not in st.session_state:
     st.session_state.loader = DataLoader()
 
 # ── ESTADO DE AUTENTICACIÓN ───────────────────────────────────────────────────
+# Persistencia de sesión: si session_state se resetea (sleep/rerun de Cloud),
+# se restaura el usuario desde la base de datos usando el uid guardado en query_params.
 if "usuario_id" not in st.session_state:
     st.session_state.usuario_id     = None
     st.session_state.usuario_nombre = None
     st.session_state.saldo_actual   = 0.0
+
+    # Intentar restaurar sesión desde query_params (sobrevive a reruns de Streamlit Cloud)
+    _uid_guardado = st.query_params.get("uid")
+    if _uid_guardado:
+        try:
+            _uid_int = int(_uid_guardado)
+            with st.session_state.db.conectar() as _conn:
+                _cur = _conn.cursor()
+                _cur.execute("SELECT id, nombre, saldo FROM usuarios WHERE id = ?".replace("?", "%s" if st.session_state.db.en_cloud else "?"), (_uid_int,))
+                _fila = _cur.fetchone()
+            if _fila:
+                st.session_state.usuario_id     = _fila[0]
+                st.session_state.usuario_nombre = _fila[1]
+                st.session_state.saldo_actual   = _fila[2]
+        except Exception:
+            # Si falla la restauración, el usuario simplemente vuelve al login
+            st.query_params.clear()
 
 # ── ENRUTADOR PRINCIPAL ───────────────────────────────────────────────────────
 if st.session_state.usuario_id is None:
