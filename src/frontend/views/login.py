@@ -78,7 +78,7 @@ def mostrar_pantalla_login() -> None:
         # ── TAB LOGIN ────────────────────────────────────────────────────────
         with tab_login:
             st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
-            email    = st.text_input("Correo electrónico", key="login_email", placeholder="tu@correo.com")
+            email    = st.text_input("Correo electrónico", key="login_email", placeholder="correo@electrónico.com")
             password = st.text_input("Contraseña", type="password", key="login_pass", placeholder="••••••••")
             st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
 
@@ -102,9 +102,9 @@ def mostrar_pantalla_login() -> None:
         # ── TAB REGISTRO ─────────────────────────────────────────────────────
         with tab_registro:
             st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
-            nombre     = st.text_input("Nombre completo",    key="reg_nombre",  placeholder="Ana García")
-            email_r    = st.text_input("Correo electrónico", key="reg_email",   placeholder="tu@correo.com")
-            password_r = st.text_input("Contraseña",         key="reg_pass",    placeholder="Mín. 6 caracteres", type="password")
+            nombre     = st.text_input("Nombre completo",    key="reg_nombre",  placeholder="Nombre Apellido")
+            email_r    = st.text_input("Correo electrónico", key="reg_email",   placeholder="correo@electrónico.com")
+            password_r = st.text_input("Contraseña",         key="reg_pass",    placeholder="Mínimo 6 caracteres", type="password")
             st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
 
             if st.button("Crear cuenta", type="primary", use_container_width=True):

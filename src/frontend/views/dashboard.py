@@ -504,7 +504,7 @@ def mostrar_pantalla_dashboard() -> None:
 
     tab_portafolio, tab_inversion, tab_prediccion = st.tabs([
         "📊  Portafolio",
-        "⚡  Zona de Inversión",
+        "💲💲💲  Zona de Inversión",
         "🤖  Predicción ML",
     ])
 

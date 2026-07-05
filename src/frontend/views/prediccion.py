@@ -168,11 +168,12 @@ def _disclaimer() -> None:
             letter-spacing: 0.04em;
             margin: 0;
         ">
-            ⚠️ <strong style="color:#7b8fa6">AVISO:</strong>
-            La señal BUY/SELL es generada por un clasificador SVC entrenado con datos históricos
+            ⚠️ <strong style="color:#7b8fa6">DISCLAIMER:</strong>
+            La señal BUY/SELL (COMPRA/VENTA) es generada por un Clasificador SVC entrenado con datos históricos
             de Yahoo Finance (2 años). El porcentaje de confianza refleja la probabilidad
             estimada del modelo, <em>no</em> una garantía de rentabilidad.
-            TradeaYa! es un simulador educativo — ninguna predicción constituye asesoramiento financiero.
+            TradeaYa! es un simulador educativo — así como ninguna operación representa una
+            transacción real, ninguna predicción constituye asesoramiento financiero.
         </p>
     </div>
     """, unsafe_allow_html=True)
