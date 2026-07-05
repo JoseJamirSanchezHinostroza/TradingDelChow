@@ -109,7 +109,7 @@ def _mostrar_portafolio(sesion, motor) -> None:
         delta=f"${retorno_td:,.2f}",
     )
     k4.metric(
-        label="Operaciones realizadas",
+        label="Operaciones de hoy",
         value=resumen["total_operaciones"],
     )
 
@@ -132,10 +132,10 @@ def _mostrar_portafolio(sesion, motor) -> None:
         df = pd.DataFrame(resumen["posiciones"])
         df = df.rename(columns={
             "simbolo"       : "Símbolo",
-            "cantidad"      : "Cant.",
-            "precio_compra" : "P. Compra",
-            "precio_actual" : "P. Actual",
-            "rendimiento_%"  : "Rend. %",
+            "cantidad"      : "Cantidad",
+            "precio_compra" : "Precio Compra",
+            "precio_actual" : "Precio Actual",
+            "rendimiento_%"  : "Rendimiento %",
         })
         df.index = range(1, len(df) + 1)
 
@@ -145,13 +145,13 @@ def _mostrar_portafolio(sesion, motor) -> None:
 
         st.dataframe(
             df.style.format({
-                "P. Compra" : fmt_precio,
-                "P. Actual" : fmt_precio,
-                "Rend. %"   : fmt_rend,
+                "Precio Compra" : fmt_precio,
+                "Precio Actual" : fmt_precio,
+                "Rendimiento %"   : fmt_rend,
             }).map(
                 lambda v: "color: #26a69a" if isinstance(v, str) and v.startswith("+") else
                           ("color: #ef5350" if isinstance(v, str) and v.startswith("-") else ""),
-                subset=["Rend. %"],
+                subset=["Rendimiento %"],
             ),
             width="stretch",
             height=min(80 + len(df) * 38, 400),
@@ -181,7 +181,7 @@ def _mostrar_historial(db, u_id: int) -> None:
     historial = db.obtener_historial(u_id)
 
     if historial:
-        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cant.", "Precio", "Fecha"])
+        df = pd.DataFrame(historial, columns=["Acción", "Tipo", "Cantidad", "Precio", "Fecha"])
 
         # Color por tipo de operación
         def _color_tipo(val):
@@ -207,7 +207,7 @@ def _mostrar_historial(db, u_id: int) -> None:
             text-align: center;
         ">
             <p style="color: #7b8fa6; font-size: 0.85rem; margin:0;">
-                Aún no has realizado ninguna operación.
+                Aún no has realizado ninguna operación. ¿Qué esperas?
             </p>
         </div>
         """, unsafe_allow_html=True)

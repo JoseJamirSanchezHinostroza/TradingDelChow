@@ -217,7 +217,7 @@ def _renderizar_header() -> None:
             padding: 0.15rem 0.5rem;
             margin-left: 0.2rem;
             align-self: center;
-        ">Terminal</span>
+        ">Terminal Bursátil</span>
     </div>
     <p style="
         font-size: 0.75rem;
@@ -225,7 +225,7 @@ def _renderizar_header() -> None:
         letter-spacing: 0.06em;
         text-transform: uppercase;
         margin: 0 0 1rem;
-    ">Simulación con datos reales de mercado</p>
+    ">Simula inversiones con datos reales de mercado</p>
     """, unsafe_allow_html=True)
 
 
