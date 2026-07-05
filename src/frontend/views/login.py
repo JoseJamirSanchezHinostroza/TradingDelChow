@@ -97,7 +97,7 @@ def mostrar_pantalla_login() -> None:
                         time.sleep(0.8)
                         st.rerun()
                     else:
-                        st.error("Credenciales incorrectas.")
+                        st.error("Credenciales incorrectas. Intente de nuevo")
 
         # ── TAB REGISTRO ─────────────────────────────────────────────────────
         with tab_registro:
@@ -111,13 +111,15 @@ def mostrar_pantalla_login() -> None:
                 if not all([nombre, email_r, password_r]):
                     st.warning("Completa todos los campos.")
                 elif not _email_valido(email_r):
-                    st.warning("Ingresa un correo electrónico válido (ej: nombre@dominio.com).")
+                    st.warning("Ingrese un correo electrónico válido.")
                 elif len(password_r) < 6:
                     st.warning("La contraseña debe tener al menos 6 caracteres.")
                 else:
                     exito, mensaje = db.registrar_usuario(nombre, email_r, password_r)
                     if exito:
-                        st.success("Cuenta creada. Inicia sesión en la pestaña anterior.")
+                        st.success("Cuenta creada exitosamente.")
+                        time.sleep(0.8)
+                        st.rerun()
                     else:
                         st.error(mensaje)
 
@@ -136,7 +138,7 @@ def mostrar_pantalla_login() -> None:
             color: #3a4f63;
             letter-spacing: 0.05em;
         ">
-            SOLO PARA FINES EDUCATIVOS · DATOS REALES, DINERO SIMULADO
+            EXCLUSIVAMENTE PARA FINES EDUCATIVOS · MERCADO REAL - DINERO FICTICIO · NO SE REALIZAN TRANSACCIONES REALES
         </p>
     </div>
     """, unsafe_allow_html=True)
