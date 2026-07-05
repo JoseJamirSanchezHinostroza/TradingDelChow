@@ -19,7 +19,7 @@ from views.helpers.auxiliares import (
 )
 from views.helpers.sidebar  import _renderizar_sidebar
 from views.helpers.grafico  import _mostrar_grafico
-from views.prediccion       import mostrar_pantalla_prediccion
+from views.helpers.prediccion       import mostrar_pantalla_prediccion
 
 # ─────────────────────────────────────────────────────────
 # HEADER PRINCIPAL
