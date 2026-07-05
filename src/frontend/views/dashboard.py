@@ -156,7 +156,7 @@ def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
             font-weight: 600;
             letter-spacing: 0.1em;
             color: {"#ffffff"};
-        ">{tiempo_estado}</span>
+        ">{tiempo_estado} Hora Nueva York</span>
     </div>
     """, unsafe_allow_html=True)
 
