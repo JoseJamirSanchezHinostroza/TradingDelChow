@@ -35,8 +35,8 @@ def mercado_abierto() -> bool:
         hour=1       →  hour=9,  minute=30
         hour=23      →  hour=16, minute=0
     """
-    tz_ny     = pytz.timezone("America/New_York") #Extrae la Zona Horaria de Nueva York
-    ahora_ny  = datetime.now(tz_ny) #Extrae el tiempo actual
+    tz_ny     = pytz.timezone("America/New_York")
+    ahora_ny  = datetime.now(tz_ny)
 
     es_dia_habil   = ahora_ny.weekday() < 7  # TESTING: cambiar a < 5 en producción
     hora_apertura  = ahora_ny.replace(hour=1,  minute=0,  second=0, microsecond=0)  # TESTING
@@ -60,7 +60,7 @@ def calcular_comision(monto_total: float) -> float:
 # SECCIÓN 3: Frescura del precio
 # ─────────────────────────────────────────────────────────
 
-LATENCIA_MAXIMA_SEGUNDOS = 60
+LATENCIA_MAXIMA_SEGUNDOS = 60  # Reducido de 120 a 60 s (sincronizado con auto-refresh)
 
 def es_precio_valido(timestamp_precio: float) -> bool:
     """True si el precio fue obtenido hace menos de LATENCIA_MAXIMA_SEGUNDOS."""

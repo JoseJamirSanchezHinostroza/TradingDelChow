@@ -2,24 +2,125 @@
 frontend/views/dashboard.py - TradeaYa!
 Terminal de inversión: consulta de precios, compra/venta y resumen de portafolio.
 """
-from datetime import datetime
-import pytz
+
 import time
 import streamlit as st
 
 from logic.calculos import calcular_comision
-from logic.calculos import mercado_abierto
 
+from views.helpers.precio_live  import (
+    precio_portafolio_live,
+    precio_ticker_live,
+    precio_sidebar_live,
+)
 from views.helpers.auxiliares import (
-    _ejecutar_compra,
-    _ejecutar_venta,
-    _mostrar_portafolio,
     _mostrar_historial,
     _obtener_todos_los_tickers,
 )
-from views.helpers.sidebar  import _renderizar_sidebar
 from views.helpers.grafico  import _mostrar_grafico
 from views.helpers.prediccion       import mostrar_pantalla_prediccion
+
+
+# ─────────────────────────────────────────────────────────
+# BARRA LATERAL
+# ─────────────────────────────────────────────────────────
+
+def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
+    """Sidebar: perfil del usuario y saldo en tiempo real."""
+
+    st.sidebar.markdown("""
+    <div style="padding: 0.5rem 0 1.2rem;">
+        <p style="
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #3a4f63;
+            margin: 0 0 1rem;
+        ">CUENTA ACTIVA</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.sidebar.markdown(f"""
+    <div style="
+        background-color: #060d1f;
+        border: 1px solid #1c2f45;
+        border-radius: 8px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 1rem;
+    ">
+        <p style="
+            font-size: 0.68rem;
+            color: #3a4f63;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0 0 0.25rem;
+        ">Usuario</p>
+        <p style="
+            font-size: 1rem;
+            font-weight: 600;
+            color: #e0e6f0;
+            margin: 0 0 0.6rem;
+        ">{st.session_state.usuario_nombre}</p>
+        <p style="
+            font-size: 0.68rem;
+            color: #3a4f63;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin: 0 0 0.2rem;
+        ">ID de cuenta</p>
+        <p style="
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.82rem;
+            color: #7b8fa6;
+            margin: 0;
+        "># {u_id:06d}</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Saldo disponible en sidebar — fragmento live (refresco cada 60 s)
+    precio_sidebar_live(sesion)
+
+    st.sidebar.markdown("---")
+
+    # Estado del mercado
+    from logic.calculos import mercado_abierto
+    abierto = mercado_abierto()
+    color_estado  = "#26a69a" if abierto else "#ef5350"
+    texto_estado  = "MERCADO ABIERTO" if abierto else "MERCADO CERRADO"
+    st.sidebar.markdown(f"""
+    <div style="
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 0;
+        margin-bottom: 0.8rem;
+    ">
+        <span style="
+            width: 7px; height: 7px;
+            background-color: {color_estado};
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 6px {color_estado};
+        "></span>
+        <span style="
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            color: {color_estado};
+        ">{texto_estado}</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.sidebar.markdown("---")
+
+    if st.sidebar.button("Cerrar sesión", width="stretch"):
+        st.session_state.usuario_id = None
+        st.session_state.pop("db_sincronizada", None)
+        # Limpiar uid de query_params para que no se restaure la sesión
+        st.query_params.clear()
+        st.rerun()
+
 
 # ─────────────────────────────────────────────────────────
 # HEADER PRINCIPAL
@@ -54,7 +155,7 @@ def _renderizar_header() -> None:
             padding: 0.15rem 0.5rem;
             margin-left: 0.2rem;
             align-self: center;
-        ">Terminal Bursátil</span>
+        ">Terminal</span>
     </div>
     <p style="
         font-size: 0.75rem;
@@ -62,7 +163,7 @@ def _renderizar_header() -> None:
         letter-spacing: 0.06em;
         text-transform: uppercase;
         margin: 0 0 1rem;
-    ">Simula inversiones con datos reales de mercado</p>
+    ">Simulación con datos reales de mercado</p>
     """, unsafe_allow_html=True)
 
 
@@ -72,7 +173,7 @@ def _renderizar_header() -> None:
 
 def _tab_portafolio(sesion, motor, db, u_id: int) -> None:
 
-    _mostrar_portafolio(sesion, motor)
+    precio_portafolio_live(sesion, motor)
 
     if sesion.portafolio:
         st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
@@ -163,154 +264,21 @@ def _tab_inversion(sesion, motor, db, u_id: int, lista_tickers: list) -> None:
 
     # ── Panel del ticker ──────────────────────────────────────────────────────
     if simbolo_inv:
-        with st.spinner(f"Consultando {simbolo_inv}…"):
-            precio_actual = motor.obtener_precio_actual(simbolo_inv)
+        # Selector de periodo (fuera del fragmento — solo cambia si el usuario lo toca)
+        st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
+        periodo_inv = st.radio(
+            "Rango",
+            ["1d", "1mo", "1y"],
+            format_func=lambda x: {"1d": "1 Día", "1mo": "1 Mes", "1y": "1 Año"}[x],
+            horizontal=True,
+            key="radio_inv",
+            label_visibility="collapsed",
+        )
 
-        if precio_actual:
-            # Selector de periodo
-            st.markdown("<div style='height:0.3rem'></div>", unsafe_allow_html=True)
-            periodo_inv = st.radio(
-                "Rango",
-                ["1d", "1mo", "1y"],
-                format_func=lambda x: {"1d": "1 Día", "1mo": "1 Mes", "1y": "1 Año"}[x],
-                horizontal=True,
-                key="radio_inv",
-                label_visibility="collapsed",
-            )
+        _mostrar_grafico(motor, simbolo_inv, periodo_inv, ctx="inv")
 
-            _mostrar_grafico(motor, simbolo_inv, periodo_inv, ctx="inv")
-
-            # ── Calculadora de operación ──────────────────────────────────────
-            st.markdown("""
-            <p style="
-                font-size: 0.72rem;
-                font-weight: 600;
-                letter-spacing: 0.1em;
-                text-transform: uppercase;
-                color: #7b8fa6;
-                margin: 1.2rem 0 0.6rem;
-            ">Calculadora de operación</p>
-            """, unsafe_allow_html=True)
-
-            c_val, c_cant, c_com, c_total = st.columns(4)
-
-            with c_val:
-                st.metric("Precio unitario", f"${precio_actual:,.2f}")
-
-            with c_cant:
-                cantidad = st.number_input(
-                    "Cantidad",
-                    min_value=1,
-                    step=1,
-                    label_visibility="visible",
-                )
-
-            monto_bruto  = precio_actual * cantidad
-            comision     = calcular_comision(monto_bruto)
-            total_op     = monto_bruto + comision
-
-            with c_com:
-                st.metric("Comisión (0.5%)", f"${comision:,.2f}")
-
-            with c_total:
-                st.metric("Total estimado", f"${total_op:,.2f}")
-
-            # ── Botones de operación ──────────────────────────────────────────
-            st.markdown("<div style='height:0.6rem'></div>", unsafe_allow_html=True)
-
-            col_compra, col_venta, col_pad = st.columns([1, 1, 2])
-
-            with col_compra:
-                st.markdown("""
-                <style>
-                div[data-testid="stButton"]:has(button:contains("COMPRAR")) button {
-                    background: linear-gradient(135deg, #0d2a26, #1a3a38) !important;
-                    border: 1px solid #26a69a !important;
-                    color: #26a69a !important;
-                    font-weight: 600 !important;
-                    letter-spacing: 0.05em !important;
-                }
-                div[data-testid="stButton"]:has(button:contains("COMPRAR")) button:hover {
-                    background: #26a69a !important;
-                    color: #060d1f !important;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                if st.button("▲ COMPRAR", width="stretch", key="btn_comprar"):
-                    _ejecutar_compra(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
-
-            with col_venta:
-                st.markdown("""
-                <style>
-                div[data-testid="stButton"]:has(button:contains("VENDER")) button {
-                    background: linear-gradient(135deg, #2a0d0d, #3a1a1a) !important;
-                    border: 1px solid #ef5350 !important;
-                    color: #ef5350 !important;
-                    font-weight: 600 !important;
-                    letter-spacing: 0.05em !important;
-                }
-                div[data-testid="stButton"]:has(button:contains("VENDER")) button:hover {
-                    background: #ef5350 !important;
-                    color: #060d1f !important;
-                }
-                </style>
-                """, unsafe_allow_html=True)
-                if st.button("▼ VENDER", width="stretch", key="btn_vender"):
-                    _ejecutar_venta(sesion, db, u_id, simbolo_inv, cantidad, precio_actual)
-
-            # Posición actual en ese ticker (si existe)
-            if simbolo_inv in sesion.portafolio:
-                pos = sesion.portafolio[simbolo_inv]
-                valor_pos = pos["cantidad"] * precio_actual
-                rend = ((precio_actual - pos["precio_compra_promedio"]) / pos["precio_compra_promedio"]) * 100
-                color_rend = "#26a69a" if rend >= 0 else "#ef5350"
-                signo = "▲" if rend >= 0 else "▼"
-
-                st.markdown(f"""
-                <div style="
-                    background-color: #0d1b2a;
-                    border: 1px solid #1c2f45;
-                    border-left: 3px solid {color_rend};
-                    border-radius: 0 8px 8px 0;
-                    padding: 0.8rem 1.1rem;
-                    margin-top: 1rem;
-                    display: flex;
-                    gap: 2rem;
-                    flex-wrap: wrap;
-                ">
-                    <div>
-                        <p style="font-size:0.65rem;color:#3a4f63;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.15rem">Posición actual</p>
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e0e6f0;margin:0;font-weight:500">{pos['cantidad']} acciones</p>
-                    </div>
-                    <div>
-                        <p style="font-size:0.65rem;color:#3a4f63;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.15rem">P. promedio compra</p>
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e0e6f0;margin:0;font-weight:500">${pos['precio_compra_promedio']:,.2f}</p>
-                    </div>
-                    <div>
-                        <p style="font-size:0.65rem;color:#3a4f63;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.15rem">Valor actual</p>
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:#e0e6f0;margin:0;font-weight:500">${valor_pos:,.2f}</p>
-                    </div>
-                    <div>
-                        <p style="font-size:0.65rem;color:#3a4f63;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 0.15rem">Rendimiento</p>
-                        <p style="font-family:'JetBrains Mono',monospace;font-size:0.95rem;color:{color_rend};margin:0;font-weight:600">{signo} {abs(rend):.2f}%</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        else:
-            st.markdown(f"""
-            <div style="
-                background-color: #1a0d0d;
-                border: 1px solid #3a1a1a;
-                border-radius: 8px;
-                padding: 1rem 1.2rem;
-                margin-top: 0.5rem;
-            ">
-                <p style="color:#ef5350;font-size:0.85rem;margin:0;">
-                    Ticker <strong>{simbolo_inv}</strong> no encontrado. Verifica el símbolo e intenta de nuevo.
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Precio + calculadora + botones — fragmento live (refresco cada 60 s)
+        precio_ticker_live(motor, simbolo_inv, sesion, db, u_id)
 
 
 # ─────────────────────────────────────────────────────────
@@ -341,7 +309,7 @@ def mostrar_pantalla_dashboard() -> None:
 
     tab_portafolio, tab_inversion, tab_prediccion = st.tabs([
         "📊  Portafolio",
-        "💲💲💲  Zona de Inversión",
+        "⚡  Zona de Inversión",
         "🤖  Predicción ML",
     ])
 
