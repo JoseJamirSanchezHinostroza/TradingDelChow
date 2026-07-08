@@ -5,6 +5,10 @@ Fragmentos de auto-refresh (run_every=60 s) para precios, gráficos y métricas.
 Cada fragmento se re-ejecuta cada 60 segundos de forma independiente,
 sin rerenderizar tabs ni otros componentes estáticos.
 
+Todos los timestamps mostrados en pantalla ("⟳ Actualizado: ...") están
+zonificados a America/New_York, consistente con el reloj del sidebar
+(helpers/sidebar.py) y con mercado_abierto() en logic/calculos.py.
+
 Fragmentos expuestos:
   - grafico_portafolio_live(motor, sesion)           → métricas + tabla + gráfico portafolio
   - grafico_inversion_live(motor, simbolo, periodo, sesion, db, u_id) → gráfico + calculadora + botones
@@ -12,12 +16,23 @@ Fragmentos expuestos:
 """
 
 import time
+from datetime import datetime
+import pytz
 import pandas as pd
 import streamlit as st
 
 from logic.calculos       import calcular_comision
 from views.helpers.auxiliares  import _ejecutar_compra, _ejecutar_venta
 from views.helpers.grafico     import _mostrar_grafico
+
+# Zona horaria única del sistema para timestamps de UI (sincronizada con
+# mercado_abierto() y el reloj del sidebar).
+_TZ_NY = pytz.timezone("America/New_York")
+
+
+def _hora_ny() -> str:
+    """Hora actual en zona horaria de Nueva York, formateada HH:MM:SS."""
+    return datetime.now(_TZ_NY).strftime("%H:%M:%S")
 
 
 # ─────────────────────────────────────────────────────────
@@ -103,8 +118,8 @@ def grafico_portafolio_live(motor, sesion, accion_seleccionada: str,
             """, unsafe_allow_html=True)
             _mostrar_grafico(motor, accion_seleccionada, periodo, ctx="port")
 
-        # Timestamp
-        st.caption(f"⟳ Actualizado: {time.strftime('%H:%M:%S')}  ·  próximo refresco en 60 s")
+        # Timestamp — zona horaria Nueva York (consistente con el sidebar)
+        st.caption(f"⟳ Actualizado: {_hora_ny()} (Hora NY)  ·  próximo refresco en 60 s")
 
     else:
         st.markdown("""
@@ -140,7 +155,7 @@ def grafico_inversion_live(motor, simbolo: str, periodo: str,
     precio_actual = motor.obtener_precio_actual(simbolo)
 
     if precio_actual:
-        # Guardar timestamp para validación de calculos.py
+        # Guardar timestamp para validación de calculos.py (epoch, no depende de TZ)
         st.session_state[f"_ts_{simbolo}"]    = time.time()
         st.session_state[f"_precio_{simbolo}"] = precio_actual
 
@@ -233,8 +248,8 @@ def grafico_inversion_live(motor, simbolo: str, periodo: str,
             </div>
             """, unsafe_allow_html=True)
 
-        # Timestamp
-        st.caption(f"⟳ Actualizado: {time.strftime('%H:%M:%S')}  ·  próximo refresco en 60 s")
+        # Timestamp — zona horaria Nueva York (consistente con el sidebar)
+        st.caption(f"⟳ Actualizado: {_hora_ny()} (Hora NY)  ·  próximo refresco en 60 s")
 
     else:
         st.markdown(f"""
@@ -265,6 +280,6 @@ def precio_sidebar_live(sesion) -> None:
         <p style="font-family:'JetBrains Mono',monospace;font-size:1.4rem;
                   font-weight:500;color:#e0e6f0;margin:0 0 0.15rem;">${saldo:,.2f}</p>
         <p style="font-family:'JetBrains Mono',monospace;font-size:0.65rem;
-                  color:#3a4f63;margin:0;">⟳ {time.strftime('%H:%M:%S')}</p>
+                  color:#3a4f63;margin:0;">⟳ {_hora_ny()} NY</p>
     </div>
     """, unsafe_allow_html=True)

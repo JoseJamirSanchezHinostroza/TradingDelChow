@@ -3,6 +3,8 @@ frontend/views/dashboard.py - TradeaYa!
 Terminal de inversión: portafolio, compra/venta y predicción ML.
 Los precios, gráficos y métricas se actualizan automáticamente cada 60 s
 mediante st.fragment(run_every=60) definidos en helpers/precio_live.py.
+El sidebar completo (usuario, saldo, reloj/estado de mercado NY, logout)
+se construye íntegramente en helpers/sidebar.py; este archivo solo lo invoca.
 """
 
 import streamlit as st
@@ -10,71 +12,13 @@ import streamlit as st
 from views.helpers.precio_live import (
     grafico_portafolio_live,
     grafico_inversion_live,
-    precio_sidebar_live,
 )
 from views.helpers.auxiliares import (
     _mostrar_historial,
     _obtener_todos_los_tickers,
 )
+from views.helpers.sidebar import _renderizar_sidebar
 from frontend.views.prediccion import mostrar_pantalla_prediccion
-
-
-# ─────────────────────────────────────────────────────────
-# BARRA LATERAL
-# ─────────────────────────────────────────────────────────
-
-def _renderizar_sidebar(sesion, u_id: int) -> None:
-    """Sidebar: perfil del usuario, saldo live y estado del mercado."""
-
-    st.sidebar.markdown("""
-    <div style="padding:0.5rem 0 1.2rem;">
-        <p style="font-size:0.65rem;font-weight:600;letter-spacing:0.12em;
-                  text-transform:uppercase;color:#3a4f63;margin:0 0 1rem;">CUENTA ACTIVA</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.sidebar.markdown(f"""
-    <div style="background-color:#060d1f;border:1px solid #1c2f45;border-radius:8px;
-                padding:1rem 1.1rem;margin-bottom:1rem;">
-        <p style="font-size:0.68rem;color:#3a4f63;letter-spacing:0.08em;
-                  text-transform:uppercase;margin:0 0 0.25rem;">Usuario</p>
-        <p style="font-size:1rem;font-weight:600;color:#e0e6f0;margin:0 0 0.6rem;">
-            {st.session_state.usuario_nombre}</p>
-        <p style="font-size:0.68rem;color:#3a4f63;letter-spacing:0.08em;
-                  text-transform:uppercase;margin:0 0 0.2rem;">ID de cuenta</p>
-        <p style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;
-                  color:#7b8fa6;margin:0;"># {u_id:06d}</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # Saldo — fragmento live (refresco cada 60 s)
-    precio_sidebar_live(sesion)
-
-    st.sidebar.markdown("---")
-
-    # Estado del mercado
-    from logic.calculos import mercado_abierto
-    abierto      = mercado_abierto()
-    color_estado = "#26a69a" if abierto else "#ef5350"
-    texto_estado = "MERCADO ABIERTO" if abierto else "MERCADO CERRADO"
-    st.sidebar.markdown(f"""
-    <div style="display:flex;align-items:center;gap:0.5rem;
-                padding:0.6rem 0;margin-bottom:0.8rem;">
-        <span style="width:7px;height:7px;background-color:{color_estado};
-                     border-radius:50%;display:inline-block;
-                     box-shadow:0 0 6px {color_estado};"></span>
-        <span style="font-size:0.68rem;font-weight:600;letter-spacing:0.1em;
-                     color:{color_estado};">{texto_estado}</span>
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.sidebar.markdown("---")
-
-    if st.sidebar.button("Cerrar sesión", width="stretch"):
-        st.session_state.usuario_id = None
-        st.session_state.pop("db_sincronizada", None)
-        st.query_params.clear()
-        st.rerun()
 
 
 # ─────────────────────────────────────────────────────────
@@ -210,7 +154,8 @@ def mostrar_pantalla_dashboard() -> None:
 
     lista_tickers = _obtener_todos_los_tickers()
 
-    _renderizar_sidebar(sesion, u_id)
+    # El sidebar completo se construye en helpers/sidebar.py; aquí solo se invoca.
+    _renderizar_sidebar(sesion, motor, u_id)
     _renderizar_header()
 
     tab_port, tab_inv, tab_pred = st.tabs([
