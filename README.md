@@ -10,7 +10,7 @@
 ### .Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada (0.5% por transacción) para simular los costos operativos de un broker real.
 ### .Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización. El sistema, sin embargo, podría permitir almacenar órdenes de compra para ejecutarlas tan pronto como el mercado vuelva a abrirse.
 ### .Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
-### .Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (ej. cada 15-60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
+### .Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (cada 60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
 
 ## 3. Distribución del desarrollo por integrante:
 ### Abad David(BackEnd): Se encargará del servidor y la gestión de datos necesarios para operar, además de establecer y mantener la conexión con las API's de Alpaca y Yahoo Finance.
