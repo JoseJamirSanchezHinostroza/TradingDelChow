@@ -12,7 +12,7 @@ zonificados a America/New_York, consistente con el reloj del sidebar
 Fragmentos expuestos:
   - grafico_portafolio_live(motor, sesion)           → métricas + tabla + gráfico portafolio
   - grafico_inversion_live(motor, simbolo, periodo, sesion, db, u_id) → gráfico + calculadora + botones
-  - precio_sidebar_live(sesion)                      → saldo en sidebar
+  - saldo_sidebar_live(sesion)                      → saldo en sidebar
 """
 
 import time
@@ -285,7 +285,7 @@ def grafico_inversion_live(motor, simbolo: str, periodo: str,
 # ─────────────────────────────────────────────────────────
 
 @st.fragment(run_every=60)
-def precio_sidebar_live(sesion) -> None:
+def saldo_sidebar_live(sesion) -> None:
     """Refresca cada 60 s el saldo disponible en el sidebar.
     Debe invocarse siempre dentro de un bloque `with st.sidebar:`."""
     saldo = sesion.saldo

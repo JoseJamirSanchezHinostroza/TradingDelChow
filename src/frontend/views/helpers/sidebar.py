@@ -13,7 +13,7 @@ import pytz
 import streamlit as st
 
 from logic.calculos import mercado_abierto
-from views.helpers.precio_live import precio_sidebar_live
+from views.helpers.precio_live import saldo_sidebar_live
 
 
 # ─────────────────────────────────────────────────────────
@@ -106,7 +106,7 @@ def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
     # Saldo — fragmento live (refresco cada 60 s). Debe llamarse dentro de
     # `with st.sidebar:` porque @st.fragment ya no acepta st.sidebar.xxx internamente.
     with st.sidebar:
-        precio_sidebar_live(sesion)
+        saldo_sidebar_live(sesion)
 
     st.sidebar.markdown("---")
 
