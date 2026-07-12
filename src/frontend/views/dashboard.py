@@ -49,28 +49,9 @@ def _renderizar_header() -> None:
 
 def _tab_portafolio(sesion, motor, db, u_id: int) -> None:
 
-    if sesion.portafolio:
-        # Selectores de acción y periodo — fuera del fragmento (input del usuario)
-        col_sel, col_per = st.columns([2, 1])
-        with col_sel:
-            accion_sel = st.selectbox(
-                "Acción", list(sesion.portafolio.keys()),
-                label_visibility="collapsed",
-            )
-        with col_per:
-            periodo_port = st.radio(
-                "Periodo", ["1d", "1mo", "1y"],
-                format_func=lambda x: {"1d": "1D", "1mo": "1M", "1y": "1A"}[x],
-                horizontal=True, key="radio_port",
-                label_visibility="collapsed",
-            )
-
-        # Fragmento live: métricas + tabla + gráfico (todo se refresca cada 60 s)
-        grafico_portafolio_live(motor, sesion, accion_sel, periodo_port)
-
-    else:
-        # Portafolio vacío: solo mostrar métricas básicas
-        grafico_portafolio_live(motor, sesion, "", "1mo")
+    # Fragmento live: métricas + tabla + selector + gráfico
+    # (todo en el orden correcto, se refresca cada 60 s)
+    grafico_portafolio_live(motor, sesion)
 
     st.markdown("---")
     with st.expander("📜 Historial de operaciones"):

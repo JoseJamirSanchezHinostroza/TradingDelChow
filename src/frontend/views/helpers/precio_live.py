@@ -40,15 +40,15 @@ def _hora_ny() -> str:
 # ─────────────────────────────────────────────────────────
 
 @st.fragment(run_every=60)
-def grafico_portafolio_live(motor, sesion, accion_seleccionada: str,
-                             periodo: str) -> None:
+def grafico_portafolio_live(motor, sesion) -> None:
     """
-    Refresca cada 60 s:
-      • Métricas de cuenta (saldo, valor portafolio, patrimonio, operaciones)
-      • Tabla de posiciones abiertas con precios y rendimientos actualizados
-      • Gráfico intradía / mensual / anual de la acción seleccionada
+    Refresca cada 60 s, en este orden:
+      1. Métricas de cuenta (saldo, valor portafolio, patrimonio, operaciones)
+      2. Tabla de posiciones abiertas
+      3. Selector de acción + periodo a analizar
+      4. Gráfico de la posición seleccionada
     """
-    # ── Precios en vivo para todas las posiciones ─────────────────────────────
+    # ── 1. Precios en vivo + métricas ──────────────────────────────────────
     precios_vivos = {
         s: p
         for s in sesion.portafolio
@@ -60,7 +60,6 @@ def grafico_portafolio_live(motor, sesion, accion_seleccionada: str,
     ganancia  = resumen["valor_portafolio"] - costo_inv
     retorno   = resumen["patrimonio_total"] - 10_000.00
 
-    # ── Métricas ──────────────────────────────────────────────────────────────
     k1, k2, k3, k4 = st.columns(4)
     k1.metric("Saldo disponible",      f"${resumen['saldo_disponible']:,.2f}")
     k2.metric("Valor del portafolio",  f"${resumen['valor_portafolio']:,.2f}",
@@ -72,7 +71,7 @@ def grafico_portafolio_live(motor, sesion, accion_seleccionada: str,
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     st.markdown("---")
 
-    # ── Tabla de posiciones ───────────────────────────────────────────────────
+    # ── 2. Tabla de posiciones ───────────────────────────────────────────────
     if resumen["posiciones"]:
         st.markdown("""
         <p style="font-size:0.72rem;font-weight:600;letter-spacing:0.1em;
@@ -107,16 +106,34 @@ def grafico_portafolio_live(motor, sesion, accion_seleccionada: str,
             height=min(80 + len(df) * 38, 400),
         )
 
-        st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:0.8rem'></div>", unsafe_allow_html=True)
 
-        # ── Gráfico de la acción seleccionada ─────────────────────────────────
-        if accion_seleccionada:
-            st.markdown("""
-            <p style="font-size:0.72rem;font-weight:600;letter-spacing:0.1em;
-                      text-transform:uppercase;color:#7b8fa6;margin:1.2rem 0 0.4rem;">
-            Análisis de posición</p>
-            """, unsafe_allow_html=True)
-            _mostrar_grafico(motor, accion_seleccionada, periodo, ctx="port")
+        # ── 3. Selector de acción + periodo ───────────────────────────────────
+        st.markdown("""
+        <p style="font-size:0.72rem;font-weight:600;letter-spacing:0.1em;
+                  text-transform:uppercase;color:#7b8fa6;margin:1.2rem 0 0.4rem;">
+        Análisis de posición</p>
+        """, unsafe_allow_html=True)
+
+        col_sel, col_per = st.columns([2, 1])
+        with col_sel:
+            accion_sel = st.selectbox(
+                "Acción", list(sesion.portafolio.keys()),
+                label_visibility="collapsed",
+                key="sel_accion_port",
+            )
+        with col_per:
+            periodo_port = st.radio(
+                "Periodo", ["1d", "1mo", "1y"],
+                format_func=lambda x: {"1d": "1D", "1mo": "1M", "1y": "1A"}[x],
+                horizontal=True, key="radio_port",
+                label_visibility="collapsed",
+            )
+
+        st.markdown("<div style='height:0.4rem'></div>", unsafe_allow_html=True)
+
+        # ── 4. Gráfico de la posición seleccionada ────────────────────────────
+        _mostrar_grafico(motor, accion_sel, periodo_port, ctx="port")
 
         # Timestamp — zona horaria Nueva York (consistente con el sidebar)
         st.caption(f"⟳ Actualizado: {_hora_ny()} (Hora NY)  ·  próximo refresco en 60 s")
@@ -269,9 +286,10 @@ def grafico_inversion_live(motor, simbolo: str, periodo: str,
 
 @st.fragment(run_every=60)
 def precio_sidebar_live(sesion) -> None:
-    """Refresca cada 60 s el saldo disponible en el sidebar."""
+    """Refresca cada 60 s el saldo disponible en el sidebar.
+    Debe invocarse siempre dentro de un bloque `with st.sidebar:`."""
     saldo = sesion.saldo
-    st.sidebar.markdown(f"""
+    st.markdown(f"""
     <div style="background:linear-gradient(135deg,#0d2a26,#0d1b2a);
                 border:1px solid #1c3a36;border-radius:8px;
                 padding:1rem 1.1rem;margin-bottom:1.2rem;">

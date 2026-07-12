@@ -103,8 +103,10 @@ def _renderizar_sidebar(sesion, motor, u_id: int) -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # Saldo — fragmento live (refresco cada 60 s), definido en precio_live.py
-    precio_sidebar_live(sesion)
+    # Saldo — fragmento live (refresco cada 60 s). Debe llamarse dentro de
+    # `with st.sidebar:` porque @st.fragment ya no acepta st.sidebar.xxx internamente.
+    with st.sidebar:
+        precio_sidebar_live(sesion)
 
     st.sidebar.markdown("---")
 
