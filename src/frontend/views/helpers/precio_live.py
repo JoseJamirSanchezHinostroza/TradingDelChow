@@ -66,7 +66,7 @@ def grafico_portafolio_live(motor, sesion) -> None:
               delta=f"${ganancia:,.2f}" if costo_inv > 0 else None)
     k3.metric("Patrimonio total",      f"${resumen['patrimonio_total']:,.2f}",
               delta=f"${retorno:,.2f}")
-    k4.metric("Operaciones realizadas", resumen["total_operaciones"])
+    k4.metric("Operaciones realizadas en la sesión", resumen["total_operaciones"])
 
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     st.markdown("---")
@@ -82,10 +82,10 @@ def grafico_portafolio_live(motor, sesion) -> None:
         df = pd.DataFrame(resumen["posiciones"])
         df = df.rename(columns={
             "simbolo"      : "Símbolo",
-            "cantidad"     : "Cant.",
-            "precio_compra": "P. Compra",
-            "precio_actual": "P. Actual",
-            "rendimiento_%" : "Rend. %",
+            "cantidad"     : "Cantidad",
+            "precio_compra": "Precio Compra",
+            "precio_actual": "Precio Actual",
+            "rendimiento_%" : "Rendimiento %",
         })
         df.index = range(1, len(df) + 1)
 
@@ -94,13 +94,13 @@ def grafico_portafolio_live(motor, sesion) -> None:
 
         st.dataframe(
             df.style.format({
-                "P. Compra": fmt_precio,
-                "P. Actual": fmt_precio,
-                "Rend. %"  : fmt_rend,
+                "Precio Compra": fmt_precio,
+                "Precio Actual": fmt_precio,
+                "Rendimiento %"  : fmt_rend,
             }).map(
                 lambda v: "color: #26a69a" if isinstance(v, str) and v.startswith("+")
                      else ("color: #ef5350" if isinstance(v, str) and v.startswith("-") else ""),
-                subset=["Rend. %"],
+                subset=["Rendimiento %"],
             ),
             width="stretch",
             height=min(80 + len(df) * 38, 400),
