@@ -66,7 +66,7 @@ def grafico_portafolio_live(motor, sesion) -> None:
               delta=f"${ganancia:,.2f}" if costo_inv > 0 else None)
     k3.metric("Patrimonio total",      f"${resumen['patrimonio_total']:,.2f}",
               delta=f"${retorno:,.2f}")
-    k4.metric("Operaciones realizadas en la sesión", resumen["total_operaciones"])
+    k4.metric("Operaciones en sesión", resumen["total_operaciones"])
 
     st.markdown("<div style='height:0.5rem'></div>", unsafe_allow_html=True)
     st.markdown("---")
