@@ -1,5 +1,5 @@
 """
-frontend/views/prediccion.py - TradeaYa!
+frontend/views/helpers/prediccion.py - TradeaYa!
 Pestaña de Predicción ML: busca cualquier ticker, entrena SVC en tiempo real
 y muestra señal BUY/SELL con confianza, métricas del modelo y gráfico técnico.
 Invocable con: from views.prediccion import mostrar_pantalla_prediccion
