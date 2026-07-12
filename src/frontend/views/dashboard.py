@@ -18,7 +18,7 @@ from views.helpers.auxiliares import (
     _obtener_todos_los_tickers,
 )
 from views.helpers.sidebar import _renderizar_sidebar
-from frontend.views.prediccion import mostrar_pantalla_prediccion
+from views.helpers.prediccion import mostrar_pantalla_prediccion
 
 
 # ─────────────────────────────────────────────────────────
