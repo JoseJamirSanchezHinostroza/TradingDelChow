@@ -60,9 +60,9 @@ class DatabaseManager:
     # ─────────────────────────────────────────────────────────
 
     @staticmethod
-    def _timestamp_lima() -> str:
-        """Devuelve la fecha/hora actual en zona horaria de Lima como string."""
-        return datetime.now(pytz.timezone("America/Lima")).strftime("%Y-%m-%d %H:%M:%S")
+    def _timestamp_ny() -> str:
+        """Devuelve la fecha/hora actual en zona horaria de Nueva York como string."""
+        return datetime.now(pytz.timezone("America/New_York")).strftime("%Y-%m-%d %H:%M:%S")
 
     # ─────────────────────────────────────────────────────────
     # INICIALIZACIÓN DE TABLAS
@@ -214,7 +214,7 @@ class DatabaseManager:
                     "(usuario_id, simbolo, cantidad, precio, tipo, fecha) "
                     "VALUES (?, ?, ?, ?, 'COMPRA', ?)",
                     (usuario_id, simbolo, cantidad_comprada,
-                     precio_compra, self._timestamp_lima()),
+                     precio_compra, self._timestamp_ny()),
                 )
                 cur = self._ejecutar(
                     conn,
@@ -278,7 +278,7 @@ class DatabaseManager:
                     "(usuario_id, simbolo, cantidad, precio, tipo, fecha) "
                     "VALUES (?, ?, ?, ?, 'VENTA', ?)",
                     (usuario_id, simbolo, cantidad_vendida,
-                     precio_venta, self._timestamp_lima()),
+                     precio_venta, self._timestamp_ny()),
                 )
                 cur = self._ejecutar(
                     conn,

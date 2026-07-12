@@ -38,9 +38,9 @@ def mercado_abierto() -> bool:
     tz_ny     = pytz.timezone("America/New_York")
     ahora_ny  = datetime.now(tz_ny)
 
-    es_dia_habil   = ahora_ny.weekday() < 7  # TESTING: cambiar a < 5 en producción
-    hora_apertura  = ahora_ny.replace(hour=1,  minute=0,  second=0, microsecond=0)  # TESTING
-    hora_cierre    = ahora_ny.replace(hour=23, minute=59, second=59, microsecond=0)  # TESTING
+    es_dia_habil   = ahora_ny.weekday() < 5
+    hora_apertura  = ahora_ny.replace(hour=9,  minute=30,  second=0, microsecond=0)
+    hora_cierre    = ahora_ny.replace(hour=16, minute=0, second=0, microsecond=0)
 
     return es_dia_habil and (hora_apertura <= ahora_ny <= hora_cierre)
 
