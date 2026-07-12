@@ -14,7 +14,6 @@ websockets>=12.0
 watchdog
 setuptools
 wheel
-scikit-learn
 numpy
 plotly
 psycopg2-binary
