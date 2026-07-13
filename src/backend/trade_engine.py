@@ -1,7 +1,6 @@
 """
 backend/trade_engine.py - TradeaYa!
-Puente con APIs externas: Alpaca (órdenes reales) y yfinance (precios).
-La lógica de validación vive en logic/calculos.py, no aquí.
+Puente con Yahoo Finance (precios).
 """
 
 from __future__ import annotations   # Permite usar tipos como "float | None" en versiones de Python anteriores a 3.10
