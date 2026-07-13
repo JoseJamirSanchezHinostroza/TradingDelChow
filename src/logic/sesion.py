@@ -35,7 +35,7 @@ class SesionTrading:
     SALDO_INICIAL = 10_000.00  # Saldo inicial en dólares definido en la lógica de negocio
 
     def __init__(self) -> None: # Ejecución automática al iniciar sesión
-        self.saldo      = self.SALDO_INICIAL # Asignación de los 100.000$
+        self.saldo      = self.SALDO_INICIAL # Asignación de los 10.000$
         self.portafolio = crear_portafolio() # Asignación de un nuevo diccionario vacío (función de portafolio.py)
         self.historial: list[dict] = [] # Asignación de una lista vacía que guardará las operaciones (IMPORTANTE EN LA ÚLTIMA FUNCIÓN)
 
