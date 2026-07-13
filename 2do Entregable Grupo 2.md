@@ -1,0 +1,1493 @@
+**Universidad Nacional Mayor de San Marcos**
+
+FACULTAD:
+
+Facultad de Ingeniería de Sistemas e Informática
+
+ASIGNATURA: Algorítmica I
+
+TEMA: 2do Entregable del Trabajo Grupal
+
+DOCENTE: Gustavo Arredondo Castillo
+
+GRUPO 2:
+
+Sanchez Hinostroza, Jose Jamir
+
+Abad Cuba, David Eduardo
+
+**2026**
+
+# **Estructura del Código Realizado:**
+
+El código se realizó en un repositorio Github “TradeaYa!”, el cuál se divide en 3 secciones y, hasta la fecha, acumula 137 commits. A continuación, se presenta cada sección del repositorio y cada bloque de código con comentario:
+
+## Carpeta docs:
+
+Sección que incluye documentos de relevancia para el trabajo grupal:
+
+- Directivas del Proyecto Grupal.pdf
+- Rubricas del proyecto final.pdf
+- .gitkeep: archivo para rastreo de la carpeta.
+
+## Carpeta tests:
+
+Carpeta temporal dónde se guardan códigos creados para probar el sistema. Al final del trabajo, esta carpeta ya no será necesaria.
+
+### **\__init_\_.py:**
+
+Archivo que asegura compatibilidad en la estructura.
+
+### **test_logica.py:**
+
+"""  
+tests/test_logica.py - TradeaYa!  
+Prueba de la lógica de negocio sin backend real.  
+Simula precios y timestamps para verificar compra, venta y validaciones.  
+<br/>Ejecutar desde la raíz del proyecto con:  
+python tests/test_logica.py  
+"""  
+<br/>**import** sys  
+**import** os  
+**import** time  
+<br/>_\# Agrega src/ al path para poder importar logic.\*_  
+sys.path.insert(0, os.path.join(os.path.dirname(\__file_\_), "..", "src"))  
+<br/>**from** logic.sesion **import** SesionTrading  
+<br/>_\# ── Datos de prueba ───────────────────────────────────────────────────────────_  
+PRECIOS = {"AAPL": 195.30, "TSLA": 185.50, "NVDA": 430.00}  
+TS_FRESCO = time.time() _\# Precio válido (ahora mismo)_  
+TS_VENCIDO = time.time() - 120 _\# Precio inválido (hace 2 minutos)_  
+<br/>_\# ── Iniciar sesión ────────────────────────────────────────────────────────────_  
+sesion = SesionTrading()  
+print(f"\\n💰 Saldo inicial: ${sesion.saldo:,.2f}\\n")  
+<br/><br/>**def** **caso**(num: int, descripcion: str, exito: bool, msg: str) -> **None**:  
+estado = "✅" **if** exito **else** "❌"  
+print(f"\[TEST {num}\] {descripcion:<30} {estado} {msg}")  
+<br/><br/>_\# ── Tests ─────────────────────────────────────────────────────────────────────_  
+exito, msg = sesion.comprar("AAPL", 10, PRECIOS\["AAPL"\], TS_FRESCO)  
+caso(1, "Compra AAPL ×10 (válida)", exito, msg)  
+<br/>exito, msg = sesion.comprar("TSLA", 5, PRECIOS\["TSLA"\], TS_VENCIDO)  
+caso(2, "Compra con precio vencido", **not** exito, msg)  
+<br/>exito, msg = sesion.vender("AAPL", 3, PRECIOS\["AAPL"\], TS_FRESCO)  
+caso(3, "Venta AAPL ×3 (parcial válida)", exito, msg)  
+<br/>exito, msg = sesion.vender("NVDA", 1, PRECIOS\["NVDA"\], TS_FRESCO)  
+caso(4, "Vender acción no poseída", **not** exito, msg)  
+<br/>exito, msg = sesion.comprar("NVDA", 1000, PRECIOS\["NVDA"\], TS_FRESCO)  
+caso(5, "Compra con saldo insuficiente", **not** exito, msg)  
+<br/>_\# ── Resumen ───────────────────────────────────────────────────────────────────_  
+resumen = sesion.get_resumen(PRECIOS)  
+<br/>print("\\n" + "─" \* 47)  
+print(f" Saldo disponible : ${resumen\['saldo_disponible'\]:>12,.2f}")  
+print(f" Valor portafolio : ${resumen\['valor_portafolio'\]:>12,.2f}")  
+print(f" Patrimonio total : ${resumen\['patrimonio_total'\]:>12,.2f}")  
+print(f" Operaciones hechas: {resumen\['total_operaciones'\]}")  
+print("─" \* 47)  
+print("\\n 📊 Posiciones actuales:")  
+<br/>**for** p **in** resumen\["posiciones"\]:  
+print(  
+f" {p\['simbolo'\]:5} | {p\['cantidad'\]} acc "  
+f"| compra ${p\['precio_compra'\]:.2f} "  
+f"| hoy ${p\['precio_actual'\]:.2f} "  
+f"| {p\['rendimiento_%'\]:+.2f}%"  
+)
+
+###   
+**main.py:**
+
+"""
+
+tests/main.py - TradeaYa!
+
+Módulo de prueba manual del backend: login, consulta de precio y compra.
+
+Ejecutar desde src/tests/ con: python main.py
+
+"""
+
+**from** database **import** DatabaseManager _\# Importa la clase que gestiona todas las operaciones con la base de datos SQLite_
+
+**from** trade_engine **import** TradeEngine _\# Importa la clase que conecta con yfinance (precios) y Alpaca (órdenes)_
+
+**from** data_loader **import** DataLoader _\# Importa la clase que genera reportes exportables del historial_
+
+**def** ejecutar_sistema() -> None: _\# Define la función principal del script; -> None indica que no retorna ningún valor_
+
+db = DatabaseManager() _\# Crea una instancia del gestor de base de datos (también crea las tablas si no existen)_
+
+motor = TradeEngine() _\# Crea una instancia del motor de trading (intenta conectarse a Alpaca al inicializarse)_
+
+loader = DataLoader() _\# Crea una instancia del generador de reportes_
+
+print("=== TRADEAYA: MÓDULO DE PRUEBAS BACKEND ===\\n") _\# Imprime un encabezado decorativo en la consola_
+
+_\# Registrar usuario de prueba (ignorar si ya existe)_
+
+db.registrar_usuario("Estudiante UNMSM", "software@unmsm.edu.pe", "1234") _\# Intenta crear el usuario de prueba; si ya existe, la DB lo ignora automáticamente_
+
+_\# Login_
+
+email = input("Email (software@unmsm.edu.pe): ").strip() _\# Solicita el email al usuario por consola y elimina espacios en blanco al inicio/final_
+
+password = input("Contraseña (1234): ").strip() _\# Solicita la contraseña por consola y elimina espacios en blanco al inicio/final_
+
+usuario = db.verificar_login(email, password) _\# Consulta la DB: devuelve (id, nombre, saldo) si las credenciales son válidas, o None si no_
+
+**if** not usuario: _\# Evalúa si el login falló (usuario es None)_
+
+print("❌ Credenciales incorrectas.") _\# Informa al usuario que las credenciales son incorrectas_
+
+**return** _\# Detiene la ejecución de la función inmediatamente_
+
+u_id, nombre, saldo = usuario _\# Desempaqueta la tupla devuelta por verificar_login en tres variables separadas_
+
+print(f"\\n✅ Bienvenido, {nombre}. Saldo: ${saldo:,.2f}") _\# Saluda al usuario mostrando su saldo con formato de miles y 2 decimales_
+
+_\# Consulta y compra_
+
+ticker = input("\\n¿Qué acción deseas consultar? (ej: AAPL, MSFT): ").strip().upper() _\# Solicita el símbolo bursátil, elimina espacios y lo convierte a mayúsculas_
+
+precio = motor.obtener_precio_actual(ticker) _\# Consulta el precio actual del ticker en yfinance; devuelve float o None si falla_
+
+**if** not precio: _\# Evalúa si no se pudo obtener el precio (precio es None o 0)_
+
+print("❌ No se pudo obtener el precio. Verifica el ticker o tu conexión.") _\# Informa el problema al usuario_
+
+**return** _\# Detiene la ejecución de la función_
+
+print(f"📈 Precio actual de {ticker}: ${precio:,.2f}") _\# Muestra el precio actual con formato de miles y 2 decimales_
+
+cantidad = int(input(f"¿Cuántas acciones de {ticker} deseas comprar?: ")) _\# Solicita la cantidad a comprar y la convierte a entero_
+
+costo_total = precio \* cantidad _\# Calcula el costo total multiplicando precio unitario por cantidad_
+
+**if** saldo < costo_total: _\# Verifica si el saldo del usuario es insuficiente para la compra_
+
+print(f"❌ Saldo insuficiente. Necesitas ${costo_total:,.2f}, tienes ${saldo:,.2f}.") _\# Informa el déficit mostrando cuánto se necesita vs. cuánto hay_
+
+**return** _\# Detiene la ejecución de la función_
+
+nuevo_saldo = saldo - costo_total _\# Calcula el saldo resultante restando el costo total al saldo actual_
+
+if db.guardar_compra(u_id, ticker, cantidad, precio, nuevo_saldo): _\# Intenta guardar la compra en la DB (actualiza saldo, transacciones y portafolio)_
+
+print(f"🚀 Compra exitosa. Nuevo saldo: ${nuevo_saldo:,.2f}") _\# Confirma la compra mostrando el nuevo saldo_
+
+print(loader.exportar_historial_usuario(u_id)) _\# Exporta y muestra el historial de transacciones del usuario_
+
+**else**: _\# Si guardar_compra devolvió False, algo falló en la DB_
+
+print("❌ Error al guardar en la base de datos.") _\# Informa el error al usuario_
+
+**if** \__name__ == "\__main_\_": _\# Comprueba que este archivo se está ejecutando directamente (no siendo importado por otro módulo)_
+
+ejecutar_sistema() _\# Llama a la función principal para iniciar el flujo del script_
+
+#### 
+
+## Documento README:
+
+README: Documento de texto plano que documenta las reglas de negocio planteadas en el 1er Entregable (con modificaciones).
+
+## Carpeta src:
+
+Sección que incluye TODO el código realizado. Cuenta con alta modularidad, ya que se divide en las 3 partes principales del proyecto: BackEnd-Lógica-FrontEnd.
+
+### Carpeta backend:
+
+#### **.env:**
+
+"""  
+Llaves de acceso a la API de ALPACA  
+"""**  
+ALPACA_KEY=PK2GN3HYWD5DJ6HF7V7PMZXKYY**
+
+**ALPACA_SECRET=2Ry1bwBE6jzHQkXTQYtp5iCn4MdEj2dz4oy2byWHN7kV**
+
+**ALPACA_ENDPOINT=https://paper-api.alpaca.markets**
+
+#### **.data_loader.py:**
+
+"""
+
+backend/data_loader.py - TradeaYa!
+
+Exportación de historial de usuario a CSV o JSON.
+
+Los precios y gráficos ahora viven en TradeEngine para centralizar yfinance.
+
+"""
+
+**import** pandas **as** pd _\# Librería para manipulación de datos en tablas (DataFrames); permite leer SQL y exportar a CSV/JSON_
+
+**from** database **import** DatabaseManager _\# Importa el gestor de base de datos para acceder al historial de transacciones_
+
+**class** DataLoader:
+
+"""Genera reportes exportables del historial de transacciones."""
+
+**def** \__init_\_(self) -> None: _\# Constructor: se ejecuta automáticamente al crear una instancia de DataLoader_
+
+self.db = DatabaseManager() _\# Crea y guarda una instancia del gestor de DB; self.db estará disponible en todos los métodos de la clase_
+
+**def** exportar_historial_usuario(self, usuario_id: int, formato: str = "csv") -> str:
+
+"""
+
+Exporta el historial de transacciones a un archivo CSV o JSON.
+
+Devuelve un mensaje de éxito o error.
+
+"""
+
+**try**: _\# Inicia un bloque de manejo de errores para capturar cualquier excepción_
+
+**with** self.db.conectar() **as** conn: _\# Abre la conexión a la DB usando context manager (se cierra automáticamente al salir del bloque)_
+
+df = pd.read_sql_query( _\# Ejecuta una consulta SQL y carga el resultado directamente en un DataFrame de pandas_
+
+"SELECT \* FROM transacciones WHERE usuario_id = ?", _\# Consulta SQL: selecciona todas las columnas de transacciones filtradas por usuario_
+
+conn, _\# Pasa la conexión activa para que pandas sepa contra qué DB ejecutar la consulta_
+
+params=(usuario_id,), _\# Sustituye el "?" de la consulta por el ID del usuario (la coma crea una tupla de un elemento)_
+
+)
+
+nombre_archivo = f"historial_user_{usuario_id}.{formato}" _\# Construye el nombre del archivo usando el ID del usuario y la extensión elegida_
+
+**if** formato == "csv": _\# Evalúa si el formato solicitado es CSV_
+
+df.to_csv(nombre_archivo, index=False) _\# Exporta el DataFrame a CSV; index=False evita escribir el índice numérico de pandas como columna_
+
+**else**: _\# Si el formato no es "csv", se asume JSON_
+
+df.to_json(nombre_archivo, orient="records") _\# Exporta el DataFrame a JSON; orient="records" genera una lista de objetos \[{col:val,...},...\]_
+
+**return** f"✅ Reporte generado: {nombre_archivo}" _\# Devuelve un mensaje de éxito con el nombre del archivo generado_
+
+**except** Exception **as** e: _\# Captura cualquier excepción que haya ocurrido dentro del bloque try_
+
+**return** f"❌ Error al exportar: {e}" _\# Devuelve un mensaje de error con la descripción de la excepción_
+
+#### **  
+.database.py:**  
+
+"""
+
+backend/database.py - TradeaYa!
+
+Capa de acceso a datos: usuarios, portafolio y transacciones.
+
+Toda operación con SQLite pasa por aquí.
+
+"""
+
+**import** sqlite3 _\# Módulo estándar de Python para trabajar con bases de datos SQLite sin servidor externo_
+
+**from** datetime **import** datetime _\# Clase para obtener y manipular fechas y horas actuales_
+
+**import** pytz _\# Librería para manejo de zonas horarias (no incluida en Python estándar; permite conversiones precisas)_
+
+**class** DatabaseManager:
+
+"""Gestiona la conexión y operaciones sobre la base de datos SQLite."""
+
+**def** \__init_\_(self, db_name: str = "tradeaya.db") -> None: _\# Constructor: acepta el nombre del archivo DB; si no se pasa ninguno, usa "tradeaya.db" por defecto_
+
+self.db_name = db_name _\# Guarda el nombre del archivo como atributo de instancia para usarlo en cada conexión_
+
+self.\_crear_tablas() _\# Llama al método privado que crea las tablas al iniciar (si aún no existen)_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# CONEXIÓN_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** conectar(self) -> sqlite3.Connection: _\# Método que devuelve un objeto Connection listo para ejecutar consultas SQL_
+
+"""Devuelve una conexión con timeout para evitar 'database is locked'."""
+
+**return** sqlite3.connect(self.db_name, timeout=10) _\# Abre (o crea) el archivo .db; timeout=10 espera hasta 10 segundos si la DB está bloqueada por otro proceso_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# INICIALIZACIÓN DE TABLAS_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** \_crear_tablas(self) -> None: _\# Método privado (convención: guión bajo al inicio); solo se llama desde \__init___
+
+"""Crea las tablas si no existen. Se llama una sola vez al iniciar."""
+
+**with** self.conectar() **as** conn: _\# Abre la conexión usando context manager: hace commit automático al salir o rollback si hay error_
+
+conn.executescript("""
+
+CREATE TABLE IF NOT EXISTS usuarios (
+
+id INTEGER PRIMARY KEY AUTOINCREMENT, -- Identificador único que se incrementa automáticamente con cada nuevo registro
+
+nombre TEXT NOT NULL, -- Nombre del usuario; NOT NULL obliga a que siempre tenga valor
+
+email TEXT UNIQUE NOT NULL, -- Email del usuario; UNIQUE impide correos duplicados en la tabla
+
+password TEXT NOT NULL, -- Contraseña del usuario almacenada en texto plano
+
+saldo REAL DEFAULT 100000.0 -- Saldo inicial en dólares; si no se especifica al crear el usuario, se asigna $100,000
+
+);
+
+CREATE TABLE IF NOT EXISTS transacciones (
+
+id INTEGER PRIMARY KEY AUTOINCREMENT, -- Identificador único de cada transacción
+
+usuario_id INTEGER NOT NULL, -- ID del usuario que realizó la operación (referencia lógica a usuarios.id)
+
+simbolo TEXT NOT NULL, -- Ticker bursátil de la acción operada (ej: "AAPL", "MSFT")
+
+cantidad INTEGER NOT NULL, -- Número de acciones compradas o vendidas
+
+precio REAL NOT NULL, -- Precio unitario de la acción al momento de la operación
+
+tipo TEXT NOT NULL, -- Indica si fue "COMPRA" o "VENTA"
+
+fecha TEXT NOT NULL -- Fecha y hora de la operación en formato texto "YYYY-MM-DD HH:MM:SS"
+
+);
+
+CREATE TABLE IF NOT EXISTS portafolio (
+
+id INTEGER PRIMARY KEY AUTOINCREMENT, -- Identificador único de cada fila del portafolio
+
+usuario_id INTEGER, -- ID del usuario dueño de esta posición
+
+simbolo TEXT NOT NULL, -- Ticker de la acción que el usuario posee actualmente
+
+cantidad INTEGER NOT NULL, -- Cantidad de acciones que el usuario tiene en cartera
+
+precio_compra_promedio REAL NOT NULL, -- Precio promedio ponderado de todas las compras realizadas de ese ticker
+
+FOREIGN KEY(usuario_id) REFERENCES usuarios(id), -- Restricción de integridad: usuario_id debe existir en la tabla usuarios
+
+UNIQUE(usuario_id, simbolo) -- Impide duplicados: cada usuario solo puede tener una fila por ticker
+
+);
+
+""")
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# USUARIOS_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** registrar_usuario(self, nombre: str, email: str, password: str) -> tuple\[bool, str\]: _\# Recibe datos del nuevo usuario y devuelve una tupla (éxito:bool, mensaje:str)_
+
+"""Crea un nuevo usuario. Devuelve (éxito, mensaje)."""
+
+try: _\# Inicia manejo de errores para capturar violaciones de unicidad del email_
+
+**with** self.conectar() **as** conn: _\# Abre la conexión con commit/rollback automático_
+
+conn.execute( _\# Ejecuta la sentencia SQL de inserción_
+
+"INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)", _\# Inserta el nuevo usuario; los "?" son marcadores de posición para prevenir SQL injection_
+
+(nombre, email, password), _\# Tupla con los valores que sustituyen a los "?" en el mismo orden_
+
+)
+
+**return** True, f"✅ Usuario '{nombre}' registrado con éxito." _\# Si la inserción fue exitosa, devuelve True y un mensaje de confirmación_
+
+**except** sqlite3.IntegrityError: _\# Captura el error específico que SQLite lanza cuando se viola la restricción UNIQUE del email_
+
+**return** False, "❌ El correo ya está registrado." _\# Devuelve False y un mensaje indicando que el email ya existe en la DB_
+
+**def** verificar_login(self, email: str, password: str) -> tuple | None: _\# Recibe credenciales y devuelve una tupla con datos del usuario o None si no coincide_
+
+"""Devuelve (id, nombre, saldo) si las credenciales son correctas, None si no."""
+
+**with** self.conectar() **as** conn: _\# Abre la conexión a la DB_
+
+**return** conn.execute( _\# Ejecuta la consulta y devuelve directamente el resultado (sin asignarlo a variable intermedia)_
+
+"SELECT id, nombre, saldo FROM usuarios WHERE email = ? AND password = ?", _\# Busca el usuario que coincida con ambos campos simultáneamente_
+
+(email, password), _\# Tupla con los valores para sustituir los "?"_
+
+).fetchone() _\# fetchone() devuelve la primera fila encontrada como tupla, o None si no hay resultados_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# PORTAFOLIO_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** obtener_portafolio(self, usuario_id: int) -> dict:
+
+"""
+
+Recupera el portafolio completo del usuario desde la DB.
+
+Devuelve: { "AAPL": {"cantidad": 10, "precio_compra_promedio": 195.30}, ... }
+
+"""
+
+**with** self.conectar() **as** conn: _\# Abre la conexión a la DB_
+
+filas = conn.execute( _\# Ejecuta la consulta y guarda todas las filas resultantes en la variable filas_
+
+"SELECT simbolo, cantidad, precio_compra_promedio FROM portafolio WHERE usuario_id = ?", _\# Selecciona las 3 columnas relevantes filtrando por usuario_
+
+(usuario_id,), _\# Tupla de un elemento con el ID del usuario (la coma es necesaria para que Python la reconozca como tupla)_
+
+).fetchall() _\# fetchall() devuelve todas las filas coincidentes como una lista de tuplas_
+
+**return** {
+
+fila\[0\]: { _\# Usa el símbolo (primera columna) como clave del diccionario resultante_
+
+"cantidad": fila\[1\], _\# Mapea la segunda columna (cantidad de acciones) al campo "cantidad"_
+
+"precio_compra_promedio": fila\[2\] _\# Mapea la tercera columna al campo "precio_compra_promedio" (nombre vital para el resto de la app)_
+
+} for fila in filas _\# Itera sobre cada fila del resultado para construir el diccionario completo_
+
+}
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# COMPRA_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** guardar_compra(
+
+self,
+
+usuario_id: int, _\# ID del usuario que realiza la compra_
+
+simbolo: str, _\# Ticker de la acción comprada_
+
+cantidad_comprada: int, _\# Número de acciones compradas en esta operación_
+
+precio_compra: float, _\# Precio unitario de la acción al momento de la compra_
+
+nuevo_saldo: float, _\# Saldo del usuario ya descontado el costo total de la compra_
+
+) -> bool:
+
+"""
+
+Atomicamente: actualiza saldo, registra transacción y actualiza portafolio
+
+con precio promedio ponderado.
+
+"""
+
+**try**: _\# Inicia manejo de errores para revertir cambios si alguna operación falla_
+
+**with** self.conectar() **as** conn: _\# Abre la conexión; el context manager hace commit de todas las operaciones al salir, o rollback si hay error_
+
+_\# 1. Actualizar saldo_
+
+conn.execute(
+
+"UPDATE usuarios SET saldo = ? WHERE id = ?", _\# Modifica el saldo del usuario en la tabla usuarios_
+
+(nuevo_saldo, usuario_id), _\# Tupla con el nuevo saldo calculado externamente y el ID del usuario a actualizar_
+
+)
+
+_\# Crea el objeto de zona horaria de Lima_
+
+zona_peru = pytz.timezone('America/Lima') _\# Instancia el objeto de zona horaria correspondiente a Perú (UTC-5)_
+
+_\# Genera la fecha actual ajustada a esa zona_
+
+fecha_actual = datetime.now(zona_peru).strftime("%Y-%m-%d %H:%M:%S") _\# Obtiene la fecha y hora actual en Lima y la formatea como string legible_
+
+_\# 2. Registrar transacción_
+
+conn.execute(
+
+"INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
+
+"VALUES (?, ?, ?, ?, 'COMPRA', ?)", _\# Inserta la transacción; el tipo 'COMPRA' va directamente en el SQL (valor fijo, no variable)_
+
+(usuario_id, simbolo, cantidad_comprada, precio_compra, fecha_actual), _\# Tupla con los valores dinámicos de la operación_
+
+)
+
+_\# 3. Actualizar portafolio (precio promedio ponderado)_
+
+fila = conn.execute(
+
+"SELECT cantidad, precio_compra_promedio FROM portafolio WHERE usuario_id = ? AND simbolo = ?", _\# Busca si ya existe esta acción en el portafolio del usuario_
+
+(usuario_id, simbolo), _\# Filtra por ID de usuario y símbolo simultáneamente_
+
+).fetchone() _\# fetchone() devuelve la fila existente o None si no hay posición previa_
+
+**if** fila: _\# Si ya existe una posición previa de este ticker, hay que actualizar con precio promedio ponderado_
+
+cant_actual, precio_anterior = fila _\# Desempaqueta la fila en las variables de cantidad y precio promedio actuales_
+
+nueva_cantidad = cant_actual + cantidad_comprada _\# Suma las acciones previas con las recién compradas para obtener el total_
+
+nuevo_promedio = (
+
+(cant_actual \* precio_anterior) + (cantidad_comprada \* precio_compra)
+
+) / nueva_cantidad _\# Fórmula del precio promedio ponderado: (valor_anterior + valor_nuevo) / cantidad_total_
+
+conn.execute(
+
+"UPDATE portafolio SET cantidad = ?, precio_compra_promedio = ? "
+
+"WHERE usuario_id = ? AND simbolo = ?", _\# Actualiza la fila existente en el portafolio con los nuevos valores_
+
+(nueva_cantidad, nuevo_promedio, usuario_id, simbolo), _\# Tupla con los valores actualizados y las condiciones del WHERE_
+
+)
+
+**else**: _\# Si no existe posición previa, es la primera compra de este ticker para el usuario_
+
+conn.execute(
+
+"INSERT INTO portafolio (usuario_id, simbolo, cantidad, precio_compra_promedio) "
+
+"VALUES (?, ?, ?, ?)", _\# Crea una nueva fila en el portafolio para este ticker_
+
+(usuario_id, simbolo, cantidad_comprada, precio_compra), _\# El precio promedio inicial es simplemente el precio de esta primera compra_
+
+)
+
+**return** True _\# Si todas las operaciones se completaron sin error, devuelve True indicando éxito_
+
+**except** Exception **as** e: _\# Captura cualquier excepción inesperada (errores de BD, restricciones, etc.)_
+
+print(f"❌ Error al guardar compra: {e}") _\# Imprime el mensaje de error en la consola para facilitar el diagnóstico_
+
+**return** False _\# Devuelve False indicando que la operación falló (el context manager habrá hecho rollback)_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# VENTA_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** guardar_venta(
+
+self,
+
+usuario_id: int, _\# ID del usuario que realiza la venta_
+
+simbolo: str, _\# Ticker de la acción vendida_
+
+cantidad_vendida: int, _\# Número de acciones vendidas en esta operación_
+
+precio_venta: float, _\# Precio unitario de la acción al momento de la venta_
+
+nuevo_saldo: float, _\# Saldo del usuario ya sumado el ingreso total de la venta_
+
+) -> bool:
+
+"""
+
+Atomicamente: actualiza saldo, registra transacción y reduce/elimina posición.
+
+"""
+
+**try**: _\# Inicia manejo de errores para revertir cambios si alguna operación falla_
+
+**with** self.conectar() **as** conn: _\# Abre la conexión; el context manager hace commit de todas las operaciones al salir, o rollback si hay error_
+
+_\# 1. Actualizar saldo_
+
+conn.execute(
+
+"UPDATE usuarios SET saldo = ? WHERE id = ?", _\# Modifica el saldo del usuario en la tabla usuarios con el nuevo valor ya calculado_
+
+(nuevo_saldo, usuario_id), _\# Tupla con el saldo actualizado y el ID del usuario_
+
+)
+
+_\# Crea el objeto de zona horaria de Lima_
+
+zona_peru = pytz.timezone('America/Lima') _\# Instancia el objeto de zona horaria correspondiente a Perú (UTC-5)_
+
+_\# Genera la fecha actual ajustada a esa zona_
+
+fecha_actual = datetime.now(zona_peru).strftime("%Y-%m-%d %H:%M:%S") _\# Obtiene la fecha y hora actual en Lima y la formatea como string legible_
+
+_\# 2. Registrar transacción_
+
+conn.execute(
+
+"INSERT INTO transacciones (usuario_id, simbolo, cantidad, precio, tipo, fecha) "
+
+"VALUES (?, ?, ?, ?, 'VENTA', ?)", _\# Inserta la transacción; el tipo 'VENTA' va directamente en el SQL (valor fijo, no variable)_
+
+(usuario_id, simbolo, cantidad_vendida, precio_venta, fecha_actual), _\# Tupla con los valores dinámicos de la operación de venta_
+
+)
+
+_\# 3. Actualizar portafolio_
+
+fila = conn.execute(
+
+"SELECT cantidad FROM portafolio WHERE usuario_id = ? AND simbolo = ?", _\# Consulta cuántas acciones tiene actualmente el usuario de ese ticker_
+
+(usuario_id, simbolo), _\# Filtra por ID de usuario y símbolo simultáneamente_
+
+).fetchone() _\# fetchone() devuelve la fila con la cantidad actual o None si no existe posición_
+
+**if** fila: _\# Si existe una posición en el portafolio para ese ticker_
+
+cantidad_restante = fila\[0\] - cantidad_vendida _\# Resta las acciones vendidas de las que tenía; fila\[0\] es la cantidad actual en la DB_
+
+**if** cantidad_restante <= 0: _\# Si no quedan acciones (o el resultado es negativo por algún error), elimina la posición completamente_
+
+conn.execute(
+
+"DELETE FROM portafolio WHERE usuario_id = ? AND simbolo = ?", _\# Elimina la fila del portafolio para ese ticker y usuario_
+
+(usuario_id, simbolo), _\# Condición del DELETE para apuntar exactamente al registro correcto_
+
+)
+
+**else**: _\# Si quedan acciones tras la venta parcial, actualiza la cantidad en el portafolio_
+
+conn.execute(
+
+"UPDATE portafolio SET cantidad = ? WHERE usuario_id = ? AND simbolo = ?", _\# Actualiza solo la cantidad; el precio promedio no cambia al vender_
+
+(cantidad_restante, usuario_id, simbolo), _\# Tupla con la cantidad restante y las condiciones del WHERE_
+
+)
+
+**return** True _\# Si todas las operaciones se completaron sin error, devuelve True indicando éxito_
+
+**except** Exception **as** e: _\# Captura cualquier excepción inesperada durante la operación_
+
+print(f"❌ Error al guardar venta: {e}") _\# Imprime el detalle del error en la consola para diagnóstico_
+
+**return** False _\# Devuelve False indicando que la operación falló (el context manager habrá hecho rollback)_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# HISTORIAL_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** obtener_historial(self, usuario_id: int) -> list\[tuple\]: _\# Recibe el ID del usuario y devuelve una lista de tuplas con sus transacciones_
+
+"""
+
+Devuelve las transacciones del usuario ordenadas por fecha descendente.
+
+Cada fila: (simbolo, tipo, cantidad, precio, fecha)
+
+"""
+
+**with** self.conectar() **as** conn: _\# Abre la conexión a la DB_
+
+**return** conn.execute(
+
+"SELECT simbolo, tipo, cantidad, precio, fecha "
+
+"FROM transacciones WHERE usuario_id = ? ORDER BY fecha DESC", _\# Filtra por usuario y ordena de más reciente a más antiguo (DESC = descendente)_
+
+(usuario_id,), _\# Tupla con el ID del usuario como único parámetro de filtro_
+
+).fetchall() _\# fetchall() devuelve todas las filas coincidentes como una lista de tuplas; lista vacía si no hay historial_
+
+####   
+**trade_engine.py:**
+
+"""
+
+backend/trade_engine.py - TradeaYa!
+
+Puente con APIs externas: Alpaca (órdenes reales) y yfinance (precios).
+
+La lógica de validación vive en logic/calculos.py, no aquí.
+
+"""
+
+**from** \__future__ **import** annotations _\# Permite usar tipos como "float | None" en versiones de Python anteriores a 3.10_
+
+**import** os _\# Módulo estándar para interactuar con el sistema operativo; se usa aquí para leer variables de entorno_
+
+**import** yfinance **as** yf _\# Librería que consume la API de Yahoo Finance para obtener precios y datos históricos de acciones_
+
+**from** dotenv **import** load_dotenv _\# Función que carga las variables de un archivo .env al entorno del proceso actual_
+
+load_dotenv() _\# Lee el archivo .env del directorio actual y establece sus pares clave=valor como variables de entorno (ALPACA_KEY, ALPACA_SECRET, etc.)_
+
+**class** TradeEngine:
+
+"""Gestiona precios vía yfinance y órdenes opcionales vía Alpaca."""
+
+**def** \__init_\_(self) -> None: _\# Constructor: se ejecuta al crear una instancia de TradeEngine_
+
+self.\_api = self.\_conectar_alpaca() _\# Intenta conectar con Alpaca y guarda el cliente como atributo privado; será None si la conexión falla_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# CONEXIÓN ALPACA_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** \_conectar_alpaca(self): _\# Método privado (guión bajo al inicio); solo lo usa \__init__ internamente_
+
+"""Inicializa el cliente de Alpaca. Devuelve None si las credenciales faltan."""
+
+key = os.getenv("ALPACA_KEY") _\# Lee la clave pública de la API de Alpaca desde las variables de entorno cargadas por load_dotenv()_
+
+secret = os.getenv("ALPACA_SECRET") _\# Lee la clave secreta de Alpaca desde las variables de entorno_
+
+endpoint = os.getenv("ALPACA_ENDPOINT") _\# Lee la URL del endpoint de Alpaca (paper trading o producción) desde las variables de entorno_
+
+**if** not all(\[key, secret, endpoint\]): _\# Verifica que los tres valores existan y no sean None ni cadena vacía; all() devuelve False si alguno falta_
+
+print("⚠️ Credenciales de Alpaca no configuradas. Modo solo-precios activo.") _\# Avisa que la app funcionará sin Alpaca (solo consulta de precios)_
+
+**return** None _\# Devuelve None; self.\_api será None y los métodos que lo usan verificarán esto antes de ejecutar_
+
+**try**: _\# Intenta importar e instanciar el cliente de Alpaca; puede fallar si la librería no está instalada_
+
+**import** alpaca_trade_api as tradeapi _\# Importación diferida: solo se ejecuta si las credenciales están presentes, evitando error si no está instalada_
+
+**return** tradeapi.REST(key, secret, endpoint, api_version="v2") _\# Crea y devuelve el cliente REST de Alpaca autenticado con las credenciales cargadas_
+
+**except** ImportError: _\# Captura el error específico que ocurre cuando la librería "alpaca-trade-api" no está instalada en el entorno_
+
+print("⚠️ alpaca-trade-api no instalado. Modo solo-precios activo.") _\# Avisa que el paquete falta; la app seguirá funcionando sin él_
+
+**return** None _\# Devuelve None para indicar que Alpaca no está disponible_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# PRECIOS (yfinance)_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** obtener_precio_actual(self, ticker: str) -> float | None: _\# Recibe un ticker y devuelve su precio como float, o None si hay error_
+
+"""
+
+Precio de mercado más reciente del ticker.
+
+Devuelve None si el símbolo no existe o hay error de red.
+
+"""
+
+**try**:
+
+**return** round(yf.Ticker(ticker).fast_info\["last_price"\], 2) _\# Crea un objeto Ticker, accede a fast_info (caché ligero sin descarga completa) y redondea el precio a 2 decimales_
+
+**except** Exception: _\# Captura cualquier error: ticker inválido, sin conexión, campo ausente, etc._
+
+**return** None _\# Devuelve None para que el llamador pueda detectar el fallo sin que la app se rompa_
+
+**def** obtener_datos_grafico(self, ticker: str, periodo: str = "1mo") -> dict | None: _\# Recibe ticker y período (default 1 mes); devuelve dict de fechas:precios o None_
+
+"""
+
+Historial de precios de cierre para graficar.
+
+Devuelve { fecha: precio } o None si hay error.
+
+"""
+
+**try**:
+
+hist = yf.Ticker(ticker).history(period=periodo) _\# Descarga el historial OHLCV del ticker para el período indicado (ej: "1mo", "3mo", "1y") como DataFrame_
+
+**if** hist.empty: _\# Verifica si el DataFrame está vacío; ocurre con tickers inválidos o fuera de mercado_
+
+**return** None _\# Devuelve None para indicar que no hay datos disponibles_
+
+**return** hist\["Close"\].to_dict() _\# Extrae solo la columna de precios de cierre y la convierte a diccionario {Timestamp: precio}_
+
+**except** Exception as e: _\# Captura cualquier error durante la descarga o procesamiento_
+
+print(f"❌ Error al cargar historial de {ticker}: {e}") _\# Imprime el error en consola para diagnóstico, incluyendo el ticker afectado_
+
+**return** None _\# Devuelve None para indicar fallo al llamador_
+
+**def** validar_ticker(self, ticker: str) -> bool: _\# Recibe un símbolo bursátil y devuelve True si existe en yfinance, False si no_
+
+"""True si el ticker existe en yfinance."""
+
+**try**:
+
+**return** bool(yf.Ticker(ticker).info) _\# Descarga el diccionario de info del ticker; si está vacío o no existe, bool() lo convierte a False_
+
+**except** Exception: _\# Captura errores de red o tickers completamente inválidos_
+
+**return** False _\# Devuelve False indicando que el ticker no es válido o no pudo verificarse_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# CUENTA ALPACA_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** obtener_saldo_alpaca(self) -> float | str: _\# Devuelve el saldo como float si Alpaca está conectado, o un string de error/aviso si no_
+
+"""Saldo de la cuenta Alpaca (paper trading). Solo informativo."""
+
+**if** self.\_api is None: _\# Verifica si Alpaca no está conectado (self.\_api es None cuando las credenciales faltan o el paquete no está)_
+
+**return** "Alpaca no conectado." _\# Devuelve un mensaje informativo en lugar de un número_
+
+**try**:
+
+**return** float(self.\_api.get_account().cash) _\# Consulta la cuenta Alpaca, extrae el campo "cash" (efectivo disponible) y lo convierte a float_
+
+**except** Exception **as** e: _\# Captura errores de red o de autenticación con Alpaca_
+
+**return** f"❌ Error Alpaca: {e}" _\# Devuelve el mensaje de error como string para que la UI pueda mostrarlo_
+
+_\# ─────────────────────────────────────────────────────────_
+
+_\# ÓRDENES ALPACA_
+
+_\# ─────────────────────────────────────────────────────────_
+
+**def** enviar_orden_compra(self, ticker: str, cantidad: int) -> str: _\# Recibe ticker y cantidad; devuelve un mensaje de éxito o error como string_
+
+"""
+
+Envía una orden de compra a mercado a Alpaca.
+
+Las validaciones de saldo y horario se hacen en logic/calculos.py.
+
+"""
+
+**if** self.\_api is None: _\# Verifica si Alpaca no está conectado antes de intentar enviar la orden_
+
+**return** "❌ Alpaca no conectado." _\# Devuelve mensaje de error si no hay cliente disponible_
+
+**try**:
+
+self.\_api.submit_order(
+
+symbol=ticker, _\# Ticker de la acción a comprar (ej: "AAPL")_
+
+qty=cantidad, _\# Número de acciones a comprar_
+
+side="buy", _\# Dirección de la orden: "buy" para compra (alternativa sería "sell")_
+
+type="market", _\# Tipo de orden: "market" se ejecuta al precio actual del mercado sin límite de precio_
+
+time_in_force="gtc", _\# "Good Till Cancelled": la orden permanece activa hasta ejecutarse o cancelarse manualmente_
+
+)
+
+**return** f"✅ Orden de compra enviada: {cantidad} × {ticker}" _\# Confirma que la orden fue enviada exitosamente a Alpaca_
+
+**except** Exception **as** e: _\# Captura errores de la API de Alpaca (fondos insuficientes, mercado cerrado, ticker inválido, etc.)_
+
+**return** f"❌ Error al enviar orden: {e}" _\# Devuelve el mensaje de error de Alpaca para que pueda mostrarse en la interfaz_
+
+### Carpeta logic:
+
+Reúne los cálculos relacionados con la lógica de negocio: saldos, operaciones, tiempos, etc. Cuenta con un .gitkeep y un \__init_\_.py por razones planteadas anteriormente. Pero, lo sustancial son los 3 códigos que contiene:
+
+#### **calculos.py:**
+
+"""  
+logic/calculos.py - TradeaYa!  
+Reglas de negocio puras: horario, comisiones, validaciones de compra/venta.  
+No depende de Streamlit ni de la base de datos.  
+<br/>REGLAS IMPLEMENTADAS  
+────────────────────  
+• Horario de mercado : Lunes-Viernes, 9:30-16:00 EST  
+(horas ampliadas intencionalmente para testing; ver comentarios en mercado_abierto)  
+• Comisión broker : 0.5 % por transacción  
+• Latencia máxima : 60 segundos desde que se obtuvo el precio  
+• Validación compra : saldo suficiente + mercado abierto + precio fresco  
+• Validación venta : acción en portafolio + cantidad suficiente + mercado abierto + precio fresco  
+• Rendimiento : ((precio_actual - precio_compra) / precio_compra) × 100  
+"""  
+<br/>**from** datetime **import** datetime  
+**import** time  
+<br/>**import** pytz  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 1: Horario de mercado_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **mercado_abierto**() -> bool:  
+"""  
+Verifica si el mercado de EE. UU. está operativo.  
+Producción real: Lunes a Viernes de 9:30 a 16:00 Zona Horaria de Nueva York.  
+<br/>NOTA DE TESTING: weekday < 7 (siempre True) y horas 01:00-23:59  
+permiten operar cualquier día y hora. Para producción cambiar:  
+weekday < 7 → weekday < 5  
+hour=1 → hour=9, minute=30  
+hour=23 → hour=16, minute=0  
+"""  
+tz_ny = pytz.timezone("America/New_York") _#Extrae la Zona Horaria de Nueva York_  
+ahora_ny = datetime.now(tz_ny) _#Extrae el tiempo actual_  
+<br/>es_dia_habil = ahora_ny.weekday() < 7 _\# TESTING: cambiar a < 5 en producción_  
+hora_apertura = ahora_ny.replace(hour=1, minute=0, second=0, microsecond=0) _\# TESTING_  
+hora_cierre = ahora_ny.replace(hour=23, minute=59, second=59, microsecond=0) _\# TESTING_  
+<br/>**return** es_dia_habil **and** (hora_apertura <= ahora_ny <= hora_cierre)  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 2: Comisión del broker_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>COMISION_PORCENTAJE = 0.005 _\# 0.5 %_  
+<br/>**def** **calcular_comision**(monto_total: float) -> float:  
+"""Devuelve el monto de comisión para una operación."""  
+**return** monto_total \* COMISION_PORCENTAJE  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 3: Frescura del precio_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>LATENCIA_MAXIMA_SEGUNDOS = 60  
+<br/>**def** **es_precio_valido**(timestamp_precio: float) -> bool:  
+"""True si el precio fue obtenido hace menos de LATENCIA_MAXIMA_SEGUNDOS."""  
+**return** (time.time() - timestamp_precio) <= LATENCIA_MAXIMA_SEGUNDOS  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 4: Cálculos de montos_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **calcular_monto_a_pagar**(precio_actual: float, cantidad: int) -> float:  
+"""Monto total a descontar del saldo al comprar (precio × cantidad + comisión)."""  
+monto_bruto = precio_actual \* cantidad  
+**return** monto_bruto + calcular_comision(monto_bruto)  
+<br/><br/>**def** **calcular_monto_a_recibir**(precio_actual: float, cantidad: int) -> float:  
+"""Monto total a acreditar al saldo al vender (precio × cantidad − comisión)."""  
+monto_bruto = precio_actual \* cantidad  
+**return** monto_bruto - calcular_comision(monto_bruto)  
+<br/><br/>**def** **calcular_rendimiento**(precio_compra: float, precio_actual: float) -> float:  
+"""Rendimiento en % respecto al precio de compra. Devuelve 0.0 si precio_compra es 0."""  
+**if** precio_compra == 0:  
+**return** 0.0  
+**return** ((precio_actual - precio_compra) / precio_compra) \* 100  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 5: Validación de compra_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **validar_transaccion_compra**(  
+saldo_actual: float,  
+precio_actual: float,  
+cantidad: int,  
+timestamp_precio: float,  
+) -> tuple\[bool, str, float, float | **None**\]:  
+"""  
+Valida si una compra puede ejecutarse.  
+<br/>Devuelve: (éxito, mensaje, saldo_resultante, precio_compra)  
+• éxito=False → No hay cambios, se determina el faltante, permanece saldo_actual, precio_compra es None.  
+• éxito=True → nuevo_saldo es el saldo después de la compra.  
+"""  
+**if** **not** mercado_abierto():  
+**return** **False**, "Mercado cerrado. Solo se permite visualización.", saldo_actual, **None**  
+<br/>**if** **not** es_precio_valido(timestamp_precio):  
+**return** **False**, "Precio desactualizado. Espera la próxima actualización.", saldo_actual, **None**  
+<br/>monto_a_pagar = calcular_monto_a_pagar(precio_actual, cantidad)  
+<br/>**if** saldo_actual >= monto_a_pagar:  
+nuevo_saldo = saldo_actual - monto_a_pagar  
+**return** **True**, f"Compra exitosa. Nuevo saldo: ${nuevo_saldo:.2f}", nuevo_saldo, precio_actual  
+<br/>falta = monto_a_pagar - saldo_actual  
+**return** **False**, f"Saldo insuficiente. Te faltan ${falta:.2f}.", saldo_actual, **None**  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 6: Validación de venta_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **validar_transaccion_venta**(  
+portafolio: dict,  
+simbolo: str,  
+cantidad: int,  
+precio_actual: float,  
+timestamp_precio: float,  
+) -> tuple\[bool, str, float\]:  
+"""  
+Valida si una venta puede ejecutarse.  
+<br/>Devuelve: (éxito, mensaje, monto_a_recibir)  
+• éxito=False → monto_a_recibir es 0.0  
+• éxito=True → monto_a_recibir se calcula y devuelve  
+"""  
+**if** **not** mercado_abierto():  
+**return** **False**, "Mercado cerrado. Solo se permite visualización.", 0.0  
+<br/>**if** **not** es_precio_valido(timestamp_precio):  
+**return** **False**, "Precio desactualizado. Espera la próxima actualización.", 0.0  
+<br/>**if** simbolo **not** **in** portafolio:  
+**return** **False**, f"No tienes acciones de {simbolo} en tu portafolio.", 0.0  
+<br/>cantidad_poseida = portafolio\[simbolo\]\["cantidad"\]  
+**if** cantidad > cantidad_poseida:  
+**return** **False**, f"No puedes vender {cantidad}. Solo posees {cantidad_poseida}.", 0.0  
+<br/>monto_a_recibir = calcular_monto_a_recibir(precio_actual, cantidad)  
+**return** **True**, f"Venta exitosa. Recibes: ${monto_a_recibir:.2f}", monto_a_recibir
+
+#### **portafolio.py:**
+
+"""  
+logic/portafolio.py - TradeaYa!  
+Gestión en memoria del portafolio del usuario: altas, bajas y consultas.  
+No depende de la base de datos ni de Streamlit.  
+"""  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 1: Crear portafolio vacío_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **crear_portafolio**() -> dict:  
+"""Devuelve un diccionario: portafolio vacío. Se llama una vez al iniciar sesión."""  
+**return** {}  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 2: Registrar compra_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **registrar_compra**(portafolio: dict, simbolo: str, cantidad: int, precio: float) -> dict:  
+"""  
+Actualiza el portafolio tras una compra exitosa. Utiliza:  
+\-Estado actual del portafolio (diccionario)  
+\-Ticker de la acción (string)  
+\-Cantidad que se compra (integer)  
+\-Precio de compra (float)  
+<br/>• Acción nueva → Crea una entrada en el diccionario con el símbolo y le asigna su cantidad-precio.  
+• Acción existente → A partir de la cantidad-precio que ya había se calcula el precio promedio ponderado. Se asigna nuevo cantidad-precio.  
+<br/>Fórmula: nuevo_prom = (cant_actual × prom_actual + cant_nueva × precio_nuevo)  
+/ (cant_actual + cant_nueva)  
+"""  
+**if** simbolo **not** **in** portafolio: _\# Acción nueva que no pertenece al portafolio_  
+portafolio\[simbolo\] = {"cantidad": cantidad, "precio_compra_promedio": precio}  
+**else**:  
+cant_actual = portafolio\[simbolo\]\["cantidad"\]  
+prom_actual = portafolio\[simbolo\]\["precio_compra_promedio"\]  
+nueva_cant = cant_actual + cantidad  
+nuevo_prom = ((cant_actual \* prom_actual) + (cantidad \* precio)) / nueva_cant  
+<br/>portafolio\[simbolo\]\["cantidad"\] = nueva_cant  
+portafolio\[simbolo\]\["precio_compra_promedio"\] = round(nuevo_prom, 4)  
+<br/>**return** portafolio  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 3: Registrar venta_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **registrar_venta**(portafolio: dict, simbolo: str, cantidad: int) -> dict:  
+"""  
+Actualiza el portafolio tras una venta exitosa. Utiliza:  
+\-Estado actual del portafolio (diccionario)  
+\-Ticker de la acción (string)  
+\-Cantidad que se compra (integer)  
+<br/>• No existe el Ticker en el portafolio → No se vende nada.  
+• Venta parcial → Reduce la cantidad (precio promedio no cambia).  
+• Venta total → Elimina el Ticker del diccionario.  
+"""  
+**if** simbolo **not** **in** portafolio: _\# No hay acción en el portafolio_  
+**return** portafolio _\# No debería ocurrir si se validó antes_  
+<br/>**if** cantidad >= portafolio\[simbolo\]\["cantidad"\]: _\# Venta total_  
+**del** portafolio\[simbolo\]  
+**else**: _\# Venta parcial_  
+portafolio\[simbolo\]\["cantidad"\] -= cantidad  
+<br/>**return** portafolio  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 4: Consultar una posición_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **obtener_posicion**(portafolio: dict, simbolo: str) -> dict | **None**:  
+"""Devuelve los datos de una acción específica dentro del portafolio, o None si no está en este."""  
+**return** portafolio.get(simbolo)  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# SECCIÓN 5: Valor total del portafolio_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **calcular_valor_portafolio**(portafolio: dict, precios_actuales: dict) -> float:  
+"""  
+Calcula el valor total en dólares del portafolio al precio más actual (float).  
+Las acciones sin precio disponible se ignoran sin interrumpir el cálculo.  
+<br/>precios_actuales: { "AAPL": 195.30, "TSLA": 185.50, ... }  
+"""  
+total = sum( _\# Función sum() para sumar todos los valores dentro del ()_  
+datos\["cantidad"\] \* precios_actuales\[simbolo\] _\# Nº acciones\*cantidad_  
+**for** simbolo, datos **in** portafolio.items() _\# Iteración sobre cada acción del portafolio_  
+**if** simbolo **in** precios_actuales _\# Toma el dato sólo si el símbolo cuenta con un precio válido_  
+)  
+**return** round(total, 2) _\# Redondeo a 2 decimales_
+
+#### **sesion.py:**
+
+"""  
+logic/sesion.py - TradeaYa!  
+Unión de calculos.py y portafolio.py en un único objeto, para ello importa sus funciones.  
+El FrontEnd no utiliza toda la sección logic; solo necesita de la clase SesionTrading.  
+"""  
+<br/>**from** datetime **import** datetime _\# Manejo fechas-horas_  
+<br/>**from** logic.calculos **import** (  
+validar_transaccion_compra,  
+validar_transaccion_venta,  
+calcular_rendimiento,  
+)  
+**from** logic.portafolio **import** (  
+crear_portafolio,  
+registrar_compra,  
+registrar_venta,  
+calcular_valor_portafolio,  
+)  
+<br/><br/>**class** **SesionTrading**:  
+"""  
+Cada vez que un usuario entra a la app, se crea una instancia de esta clase.  
+Representa la sesión activa de un usuario, cuya cuenta inicia con 100.000 dólares.  
+<br/>Mantiene en memoria:  
+• saldo - Dinero disponible para operar  
+• portafolio - Acciones (Tickers) actuales con su respectivo precio promedio  
+• historial - Lista de operaciones realizadas en la sesión presente.  
+<br/>Define funciones de compra, venta, resumen y registro en el historial.  
+"""  
+<br/>SALDO_INICIAL = 100_000.00 _\# Saldo inicial en dólares definido en la lógica de negocio_  
+<br/>**def** **\__init__**(self) -> **None**: _\# Ejecución automática al iniciar sesión_  
+self.saldo = self.SALDO_INICIAL _\# Asignación de los 100.000$_  
+self.portafolio = crear_portafolio() _\# Asignación de un nuevo diccionario vacío (función de portafolio.py)_  
+self.historial: list\[dict\] = \[\] _\# Asignación de una lista vacía que guardará las operaciones (IMPORTANTE EN LA ÚLTIMA FUNCIÓN)_  
+<br/>_\# ─────────────────────────────────────────────────────────_  
+_\# FUNCIÓN DE COMPRA_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **comprar**(  
+self, simbolo: str, cantidad: int, precio_actual: float, timestamp_precio: float  
+) -> tuple\[bool, str\]:  
+"""  
+A partir de la orden del FrontEnd de intentar ejecutar una compra, devuelve (éxito, mensaje).  
+Recibe el Ticker, la cantidad, su precio actual y la hora a la que se adquirió el precio.  
+"""  
+exito, mensaje, nuevo_saldo, precio_compra = validar_transaccion_compra(  
+self.saldo, precio_actual, cantidad, timestamp_precio  
+) _\# Validación de la compra con la función de cálculos.py_  
+<br/>**if** exito: _\# Compra exitosa_  
+self.saldo = nuevo_saldo _\# Actualización de saldo_  
+self.portafolio = registrar_compra(self.portafolio, simbolo, cantidad, precio_compra) _\# Registro de la compra en el portafolio: añade las acciones (Función de portafolio.py)_  
+self.\_registrar_operacion("COMPRA", simbolo, cantidad, precio_compra) _\# Registro de la compra en el historial de operaciones_  
+<br/>**return** exito, mensaje _\# Devuelve al dashboard el éxito o fracaso de la compra_  
+<br/>_\# ─────────────────────────────────────────────────────────_  
+_\# FUNCIÓN VENTA_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **vender**(  
+self, simbolo: str, cantidad: int, precio_actual: float, timestamp_precio: float  
+) -> tuple\[bool, str\]:  
+"""  
+A partir de la orden del FrontEnd de intentar ejecutar una venta, devuelve (éxito, mensaje).  
+Recibe el Ticker, la cantidad, su precio actual y la hora a la que se adquirió el precio.  
+"""  
+exito, mensaje, monto_recibido = validar_transaccion_venta(  
+self.portafolio, simbolo, cantidad, precio_actual, timestamp_precio  
+) _\# Validación de la venta con la función de cálculos.py_  
+<br/>**if** exito: _\# Venta exitosa_  
+self.saldo += monto_recibido _\# Se añade lo recibido al saldo_  
+self.portafolio = registrar_venta(self.portafolio, simbolo, cantidad) _\# Registro de la venta en el portafolio: retira las acciones (Función de portafolio.py)_  
+self.\_registrar_operacion("VENTA", simbolo, cantidad, precio_actual) _\# Registro de la venta en el historial de operaciones_  
+<br/>**return** exito, mensaje _\# Devuelve al dashboard el éxito o fracaso de la venta_  
+<br/>_\# ─────────────────────────────────────────────────────────_  
+_\# FUNCIÓN DE RESUMEN_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **get_resumen**(self, precios_actuales: dict) -> dict:  
+"""  
+Función que utiliza el estado completo de la sesión para elaborar el dashboard.  
+Por cada acción del portafolio se crea un diccionario que incluye:  
+simbolo, cantidad, precio_compra, precio_actual, rendimiento_%  
+"""  
+posiciones = \[ _\# List Comprehension: creación de listas mediante iteración sobre listas existentes_  
+{  
+"simbolo" : simbolo,  
+"cantidad" : datos\["cantidad"\],  
+"precio_compra" : datos\["precio_compra_promedio"\],  
+"precio_actual" : precios_actuales.get(simbolo),  
+"rendimiento_%" : calcular_rendimiento(  
+datos\["precio_compra_promedio"\],  
+precios_actuales.get(simbolo, 0),  
+), _\# Cálculo del rendimiento de cada acción con la función de calculos.py_  
+}  
+**for** simbolo, datos **in** self.portafolio.items() _\# Recorre el inventario de acciones_  
+\]  
+<br/>valor_portafolio = calcular_valor_portafolio(self.portafolio, precios_actuales) _\# Suma del valor de todas las acciones (función de portafolio.py)_  
+<br/>**return** { _\# Diccionario que se envia al Dashboard_  
+"saldo_disponible" : round(self.saldo, 2),  
+"valor_portafolio" : valor_portafolio,  
+"patrimonio_total" : round(self.saldo + valor_portafolio, 2), _\# Suma del saldo con el valor del portafolio_  
+"posiciones" : posiciones,  
+"total_operaciones" : len(self.historial), _\# Longitud del historial de operaciones_  
+}  
+<br/>_\# ─────────────────────────────────────────────────────────_  
+_\# FUNCIÓN DE REGISTRO EN EL HISTORIAL (interna, el Dashboard no la llama)_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **\_registrar_operacion**(self, tipo: str, simbolo: str, cantidad: int, precio: float) -> **None**:  
+"""Agrega una operación al historial en memoria. Uso interno."""  
+self.historial.append({ _\# Agrega a la lista vacía del inicio todos los datos de la nueva transacción_  
+"tipo" : tipo,  
+"simbolo" : simbolo,  
+"cantidad" : cantidad,  
+"precio" : precio,  
+"hora" : datetime.now().strftime("%Y-%m-%d %H:%M:%S"),  
+})
+
+### Carpeta frontend:
+
+Reúne las secciones de código relacionadas a la parte gráfica del programa. Para ello, se utiliza el motor gráfico Streamlit gracias a su librería en Python. Cuenta con .gitkeep y \__init_\_.py por motivos de estructura. Su contenido incluye una carpeta denominada “views”, que almacena 2 bloques de código (dashboard y login) que definen la interfaz total del programa, y el archivo app.py, que recopila todo lo anterior visto para reproducir la página web (es el ejecutable).
+
+#### **views/dashboard.py:**
+
+"""  
+frontend/views/dashboard.py - TradeaYa!  
+Graficación de la terminal de inversión: consulta de precios, compra/venta y resumen de portafolio.  
+"""  
+<br/>**import** time _\# Librería de tiempo_  
+**import** pandas **as** pd _\# Pandas para tablas de datos_  
+**import** streamlit **as** st _\# Streamlit como motor gráfico de la página web_  
+<br/>_\# ─────────────────────────────────────────────────────────_  
+_\# FUNCIÓN QUE DIBUJA LA PANTALLA_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>**def** **mostrar_pantalla_dashboard**() -> **None**:  
+sesion = st.session_state.sesion _\# Extrae de Streamlit el objeto de la sesión_  
+motor = st.session_state.motor _\# // el motor de Yahoo Finance_  
+db = st.session_state.db _\# // la base de datos_  
+u_id = st.session_state.usuario_id _\# // el ID de usuario_  
+<br/>**if** "db_sincronizada" **not** **in** st.session_state: _\# Sincronización inicial y única con la DB por sesión para cargar saldo y portafolio_  
+**with** db.conectar() **as** conn: _\# Abre la DataBase_  
+fila = conn.execute( _\# Extrae el saldo del usuario de la tabla usuarios_  
+"SELECT saldo FROM usuarios WHERE id = ?", (u_id,)  
+).fetchone()  
+**if** fila: _\# Si existe el usuario, extrae su saldo a la memoria de la sesión presente_  
+sesion.saldo = fila\[0\]  
+<br/>sesion.portafolio = db.obtener_portafolio(u_id) _\# Extrae las acciones de la DB a la memoria de la sesión_  
+st.session_state.db_sincronizada = **True** _\# Sincronización completa --> Este bloque de código NO se volverá a ejecutar_  
+<br/>_\# ── Barra lateral: Perfil-Nombre-ID ─────────────────────────────────────────────────────────_  
+st.sidebar.title("Mi Perfil")  
+st.sidebar.write(f"👤 \*\*{st.session_state.usuario_nombre}\*\*")  
+st.sidebar.write(f"💼 ID Cuenta: #{u_id}")  
+<br/>**if** st.sidebar.button("Cerrar Sesión"): _\# Si el usuario presiona el botón de CERRAR SESIÓN..._  
+st.session_state.usuario_id = **None** _\# Borra el usuario de la memoria_  
+st.session_state.pop("db_sincronizada", **None**) _\# Borra la sincronización de la memoria_  
+st.rerun() _\# Recarga de página_  
+<br/>_\# ── Encabezado: Título principal de la página ────────────────────────────────────────────────────────────_  
+st.title("📈 TradeaYa! | Terminal de Inversión")  
+st.markdown("---")  
+<br/>col_izq, col_der = st.columns(\[1, 2\]) _\# División de la página en 2 columnas (derecha es el doble de ancha que la izquierda)_  
+<br/>_\# ── Columna izquierda: Todo lo que aparecerá ───────────────────────────────────────_  
+**with** col_izq:  
+st.subheader("⚡ Operaciones")  
+<br/>simbolo = st.text_input("Ticker (ej: AAPL, TSLA, NVDA):").strip().upper() _\# Caja de texto para ingresar Ticker (quita espacios y pone mayúsculas automáticamente)_  
+cantidad = st.number_input("Cantidad:", min_value=1, step=1) _\# Caja de números para colocar la cantidad de acciones a operar (números forzadamente positivos y enteros)_  
+precio_actual = 0.0  
+<br/>**if** simbolo: _\# Si el usuario escribe un Ticker_  
+**with** st.spinner(f"Consultando mercado: {simbolo}..."): _\# Rueda de carga para búsqueda del precio_  
+precio_actual = motor.obtener_precio_actual(simbolo) _\# Va a Yahoo Finance a obtener el precio con la función del BackEnd_  
+<br/>**if** precio_actual: _\# Si lo obtiene..._  
+st.metric(label=f"Precio Actual {simbolo}", value=f"${precio_actual:,.2f}") _\# Muestra el precio encontrado_  
+\_mostrar_grafico(motor, simbolo) _\# Gráfico de los precios históricos (último mes)_  
+**else**: _\# Si no..._  
+st.error("Símbolo no encontrado o error de conexión.")  
+<br/>col_compra, col_venta = st.columns(2) _\# Divide la columna izquierda en 2 botones de compra / venta_  
+<br/>**with** col_compra:  
+**if** st.button("🟩 COMPRAR", use_container_width=**True**): _\# Si presionas el botón VENDER_  
+\_ejecutar_compra(sesion, db, u_id, simbolo, cantidad, precio_actual)  
+<br/>**with** col_venta:  
+**if** st.button("🟥 VENDER", use_container_width=**True**): _\# Si presionas el botón VENDER_  
+\_ejecutar_venta(sesion, db, u_id, simbolo, cantidad, precio_actual)  
+<br/>_\# ── Columna derecha: Portafolio ───────────────────────────────────────────_  
+**with** col_der:  
+st.subheader("📊 Mi Portafolio")  
+\_mostrar_portafolio(sesion, motor)  
+<br/>_\# ── Historial de operaciones (abajo) ──────────────────────────────────────────────_  
+**with** st.expander("📜 Ver Historial de Operaciones"):  
+\_mostrar_historial(db, u_id)  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# Gráfico de precios históricos: pide a Yahoo Finance_  
+_\# ─────────────────────────────────────────────────────────_  
+<br/>"""Muestra el gráfico de tendencia del último mes. Recibe el motor de la API y el Ticker"""  
+**def** **\_mostrar_grafico**(motor, simbolo: str) -> **None**:  
+<br/>st.markdown(f"### 📈 Tendencia: {simbolo}")  
+<br/>**try**:  
+datos_hist = motor.obtener_datos_grafico(simbolo, periodo="1mo") _\# Petición al motor de precios el historial del último mes_  
+**if** datos_hist: _\# Si existen los datos_  
+serie = pd.Series(datos_hist) _\# Conversión de datos crudos a una columna Pandas de datos_  
+serie.index = pd.to_datetime(serie.index).date _\# Recorta las fechas para el eje X (solo día)_  
+st.area_chart(serie, color="#29b5e8") _\# Gráfico con relleno de color celeste_  
+<br/>variacion = ((serie.iloc\[-1\] - serie.iloc\[0\]) / serie.iloc\[0\]) \* 100 _\# Cálculo de la variacion de precios entre hoy\[-1\] y hace 1 mes\[0\]_  
+st.caption(f"Variación del último mes: \*\*{variacion:+.2f}%\*\*") _\# Muestra la variación en porcentaje y con signo (+.2f)_  
+**else**:  
+st.warning(f"Sin historial disponible para {simbolo}.") _\# No hay datos_  
+**except** Exception **as** e:  
+st.error(f"Error procesando gráfico: {e}") _\# Fallo de la API/Internet_  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# Ejecución de Compra_  
+_\# ─────────────────────────────────────────────────────────_  
+"""Valida y ejecuta una compra, la guarda en DB. Recibe la sesión, DataBase, ID de usuario, Ticker, cantidad a comprar y precio actual."""  
+**def** **\_ejecutar_compra**(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_actual: float) -> **None**:  
+<br/>**if** precio_actual <= 0: _\# Barrera por si el precio es inválido_  
+st.error("Obtén el precio del ticker antes de comprar.")  
+**return**  
+<br/>costo_total = precio_actual \* cantidad _\# Cálculo del precio_  
+**if** sesion.saldo < costo_total: _\# Si el saldo de la sesión no alcanza_  
+st.error("Saldo insuficiente.")  
+**return**  
+<br/>nuevo_saldo = sesion.saldo - costo_total _\# Cálculo del saldo sobrante_  
+**if** db.guardar_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo): _\# Intento de guardado de la compra en la DataBase_  
+sesion.comprar(simbolo, cantidad, precio_actual, time.time()) _\# Actualiza la memoria de la sesión: suma las acciones al portafolio_  
+st.success(f"✅ Compra de {cantidad} × {simbolo} guardada.")  
+time.sleep(1) _\# Congela el programa 1 segundo para leer el mensaje de éxito_  
+st.rerun() _\# Reinicio de pantalla: actualización de datos_  
+**else**:  
+st.error("Error al guardar la compra en la base de datos.")  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# Ejecución de Venta_  
+_\# ─────────────────────────────────────────────────────────_  
+"""Valida y ejecuta una venta, la guarda en DB. Recibe la sesión, DataBase, ID de usuario, Ticker, cantidad a vender y precio actual."""  
+**def** **\_ejecutar_venta**(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_actual: float) -> **None**:  
+<br/>exito, msg = sesion.vender(simbolo, cantidad, precio_actual, time.time()) _\# La sesión define el éxito de la venta (cantidad suficiente)_  
+<br/>**if** exito:  
+**if** db.guardar_venta(u_id, simbolo, cantidad, precio_actual, sesion.saldo): _\# Intento de guardado de la venta en la DataBase_  
+st.success(f"✅ Venta registrada. {msg}")  
+time.sleep(1) _\# Congela el programa 1 segundo para leer el mensaje de éxito_  
+st.rerun() _\# Reinicio de pantalla: actualización de datos_  
+**else**:  
+st.error("Error al guardar la venta en la base de datos.")  
+**else**:  
+st.error(msg) _\# Falta de acciones_  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# Gráfico del Portafolio:_  
+_\# ─────────────────────────────────────────────────────────_  
+"""Muestra la tabla de posiciones abiertas y sus métricas. Recibe la sesión y el motor de la API"""  
+**def** **\_mostrar_portafolio**(sesion, motor) -> **None**:  
+<br/>precios_vivos = { _\# Dictionary Comprehension: Creación de diccionarios (precios_vivos) a partir de iteración_  
+s: p _\# En cada iteración, s adoptará el nombre de una acción_  
+**for** s **in** sesion.portafolio _\# Recorre el inventario de acciones (portafolio)_  
+**if** (p := motor.obtener_precio_actual(s)) **is** **not** **None** _\# Llama a la API para obtener precios en vivo, guardados temporalmente en p (Operador Morsa :=). Se asegura de tomar precios no vacíos_  
+}  
+<br/>resumen = sesion.get_resumen(precios_vivos) _\# Delega los precios frescos a la sesión para obtener el resumen: Ganancia o Pérdida_  
+<br/>k1, k2, k3 = st.columns(3) _\# División en 3 bloques para los siguientes saldos:_  
+k1.metric("Saldo Disponible", f"${resumen\['saldo_disponible'\]:,.2f}")  
+k2.metric("Valor Acciones", f"${resumen\['valor_portafolio'\]:,.2f}")  
+k3.metric("Patrimonio Total", f"${resumen\['patrimonio_total'\]:,.2f}")  
+<br/>st.markdown("---")  
+<br/>**if** resumen\["posiciones"\]: _\# Verifica la presencia de al menos 1 acción_  
+st.write("### Posiciones Abiertas")  
+<br/>df = pd.DataFrame(resumen\["posiciones"\]) _\# Ingresa los datos en un DataFrame Pandas_  
+<br/>df = df.rename(columns={ _\# Renombra las columnas del resumen_  
+"simbolo": "Símbolo",  
+"cantidad": "Cantidad",  
+"precio_compra": "Precio Promedio",  
+"precio_actual": "Precio Actual",  
+"rendimiento_%": "Rendimiento"  
+})  
+<br/>df.index = range(1, len(df) + 1) _#Ajuste de índice de enumeración (la posición más antigua empieza en 1)_  
+st.dataframe( _\# Mostrar tabla con formato de moneda ($) y porcentaje (%)_  
+df.style.format({  
+"Precio Promedio" : "${:.2f}",  
+"Precio Actual" : "${:.2f}",  
+"Rendimiento" : "{:.2f}%",  
+}),  
+use_container_width=**True**, _\# Estira el ancho_  
+)  
+<br/>**else**:  
+st.info("Tu portafolio está vacío. ¡Empieza a tradear!") _\# Si no hay acciones_  
+<br/><br/>_\# ─────────────────────────────────────────────────────────_  
+_\# Gráfico del Historial de Operaciones_  
+_\# ─────────────────────────────────────────────────────────_  
+"""Muestra el historial completo de transacciones del usuario. Recibe la DataBase y el ID de usuario."""  
+**def** **\_mostrar_historial**(db, u_id: int) -> **None**:  
+<br/>historial = db.obtener_historial(u_id) _\# Extrae la información del usuario (ID) del DataBase_  
+**if** historial: _\# Si hay datos..._  
+df = pd.DataFrame(historial, columns=\["Acción", "Tipo", "Cantidad", "Precio", "Fecha"\]) _\# DataFrame de Pandas que ordena lso datos por columnas_  
+df.index = range(len(df), 0, -1) _\# Ajuste de índice de enumeración (la operación más antigua empieza por 1)_  
+st.dataframe( _\# Mostrar la columna Precio con formato de moneda ($)_  
+df.style.format({  
+"Precio": "${:.2f}"  
+}),  
+use_container_width=**True** _\# Estira el ancho_  
+)  
+**else**:  
+st.info("Aún no has realizado ninguna operación.") _\# Si no hay opetaciones_
+
+#### **views/login.py:**
+
+"""  
+frontend
+
+frontend/views/login.py - TradeaYa!
+
+Pantalla de inicio de sesión y registro de nuevos usuarios.  
+"""  
+<br/>import time # Librería tiempo  
+import streamlit **as** **st** # Streamlit como motor **gr**áfico **de** **la** página web  
+<br/><br/>def **mostrar_pantalla_login**() -> None:  
+**st**.title("🔐 Bienvenido a TradeaYa!")  
+**st**.subheader("Inicia sesión para acceder a tu terminal de inversión")  
+<br/>**db** = **st**.session_state.**db** # Extrae **la** conexió**n** **de** **la** memoria **de** sesió**n** a **la** **DB** .  
+<br/>tab_login, tab_registro = **st**.tabs(\["Iniciar Sesión", "Registrarse"\]) # **Genera** 2 pestañ**as** navegables distintas con tabs: Inicio **de** sesió**n** o registro  
+<br/>\# ── PESTAÑA 1: INICIO **DE** SESIÓ**N** ────────────────────────────────────────────────────────  
+with tab_login:  
+""" Caja de texto para ingresar el correo (key porque hay 1 caja email en cada tab, evita la confusión del programa) y contraseña (type para ocultar lo escrito) """  
+email = **st**.text_input("Correo electrónico", key="login_email")  
+password = **st**.text_input("Contraseña", **type**\="password", key="login_pass")  
+<br/>**if** **st**.button("Ingresar", **type**\="primary"): # Si **se** presiona el botó**n** Ingresar  
+usuario = **db**.verificar_login(email, password) # **Se** revisa si hay un match con un par email-password **de** **la** DataBase (tabla usuarios)  
+**if** usuario: # Devolvió match (credenciales correctas)  
+**st**.session_state.usuario_id = usuario\[0\] # Guarda **en** **la** memoria **de** sesió**n** el ID del usuario  
+**st**.session_state.usuario_nombre = usuario\[1\] # _// el nombre del usuario_  
+**st**.session_state.saldo_actual = usuario\[2\] # _// el saldo actual del usuario_  
+**st**.success(f"¡Bienvenido de vuelta, {usuario\[1\]}!") # Bienvenida al usuario  
+time.**sleep**(1) # Congelació**n** para visualizar el mensaje  
+**st**.rerun() # Refresco para actualizació**n**  
+**else**:  
+**st**.**error**("Credenciales incorrectas. Intenta de nuevo.") # Cuadro rojo **de** **Error**  
+<br/>\# ── PESTAÑA 2: REGISTRO ──────────────────────────────────────────────────────────────  
+with tab_registro:  
+""" Creación de 3 campos para registro (Nombre-Email-Contraseña). Utiliza key para evitar confusión con la otra tab. """  
+nombre = **st**.text_input("Nombre completo", key="reg_nombre")  
+email_r = **st**.text_input("Correo electrónico", key="reg_email")  
+password_r = **st**.text_input("Contraseña", **type**\="password", key="reg_pass")  
+<br/>**if** **st**.button("Crear Cuenta", **type**\="primary"): # Si **se** presiona el botó**n** Crear Cuenta  
+**if** nombre and email_r and password_r: # **No** hay vacíos **en** ningú**n** campo  
+exito, mensaje = **db**.registrar_usuario(nombre, email_r, password_r) # Intento **de** insertació**n** **de** **la** nueva fila a **la** DataBase  
+**if** exito:  
+**st**.success("¡Cuenta creada! Ve a 'Iniciar Sesión' para entrar.") # Registro completo, **DB** devolvió True. **Te** invita a iniciar sesió**n**.  
+**else**:  
+**st**.**error**(mensaje) # **Error** (correo ya usado), muestra mensaje **de** **error** **de** **la** **DB**, **que** devolvió False  
+**else**:  
+**st**.warning("Por favor, completa todos los campos.") # **Se** dejó un campo **en** blanco  
+
+#### **app.py:**
+
+"""  
+frontend/app.py - TradeaYa!  
+Aquí Streamlit reproduce la página web. Configura rutas para importaciones,  
+inicializa objetos y enruta al Login o al Dashboard según el estado de sesión.  
+<br/>Este es el archivo a ejecutar mediante el siguiente comando en la terminal:  
+streamlit run src/frontend/app.py  
+"""  
+<br/>**import** sys _\# Interacción directa con el intérprete y SO_  
+**import** os _\# Interacción directa con el SO_  
+<br/>**import** streamlit **as** st _\# Motor gráfico de la página_  
+<br/>_\# ── RUTAS: Agrega src/ y src/backend/ al path para que las importaciones funcionen sin instalar el proyecto como paquete ──────_  
+\_SRC = os.path.abspath(os.path.join(os.path.dirname(\__file_\_), "..")) _\# Utiliza os para encontrar la ruta exacta de src_  
+\_BACKEND = os.path.join(\_SRC, "backend") _\# Construye la ruta hacia la carpeta del BackEnd_  
+<br/>**for** \_ruta **in** (\_SRC, \_BACKEND):  
+**if** \_ruta **not** **in** sys.path:  
+sys.path.insert(0, \_ruta) _\# Inserta a la memoria de Python ambas carpetas si no están mediante iteración._  
+<br/>_\# ── IMPORTACIONES: Python sabe que buscar gracias a RUTAS────────────────────────────────────────────────────────────_  
+**from** logic.sesion **import** SesionTrading _\# Control de lógica_  
+**from** backend.trade_engine **import** TradeEngine _\# Conexión a Yahoo Finance y Alpaca para precios_  
+**from** backend.data_loader **import** DataLoader _\# Genración de reportes del historial de transacciones_  
+**from** backend.database **import** DatabaseManager _\# Conexión y operaciones sobre la DB_  
+<br/>**from** views.login **import** mostrar_pantalla_login _\# Pantalla de loggeo/registro_  
+**from** views.dashboard **import** mostrar_pantalla_dashboard _\# Pantalla dónde el usuario opera_  
+<br/>_\# ── CONFIG DE PÁGINA ──────────────────────────────────────────────────_  
+st.set_page_config(page_title="TradeaYa!", page_icon="📈", layout="wide") _\# Define nombre de la página y la ocupación total de la pantalla_  
+<br/>_\# ── INICIALIZACIÓN DE OBJETOS (evento único por sesión) ────────────────────────────_  
+""" Si algo no se encuentra en la memoria de sesión, lo crea utilizando las clases importadas: los datos sobreviven los refresh """  
+**if** "db" **not** **in** st.session_state:  
+st.session_state.db = DatabaseManager()  
+**if** "sesion" **not** **in** st.session_state:  
+st.session_state.sesion = SesionTrading()  
+**if** "motor" **not** **in** st.session_state:  
+st.session_state.motor = TradeEngine()  
+**if** "loader" **not** **in** st.session_state:  
+st.session_state.loader = DataLoader()  
+<br/>_\# ── ESTADO DE AUTENTICACIÓN (evento único por sesión) ────────────────────────_  
+"""Si el ID de usuario no se encuentra en la memoria de sesión, inicializa variables por seguridad"""  
+**if** "usuario_id" **not** **in** st.session_state:  
+st.session_state.usuario_id = **None**  
+st.session_state.usuario_nombre = **None**  
+st.session_state.saldo_actual = 0.0  
+<br/>_\# ── ENRUTADOR PRINCIPAL ───────────────────────────────────────────────────────_  
+""" Si el ID de usuario se encuentra en la memoria de sesión, vas directo a la pantalla de operaciones (DashBoard). Si no, te manda a iniciar sesión (funciones de views)"""  
+**if** st.session_state.usuario_id **is** **None**:  
+mostrar_pantalla_login()  
+**else**:  
+mostrar_pantalla_dashboard()
+
+# **Diagrama UML del Código:**  
+<br/>
