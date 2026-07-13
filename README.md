@@ -1,17 +1,105 @@
-# TradeaYa! - PeruDevs
+# 📈 TradeaYa!
 
-## 1. Descripción de las funcionalidades del proyecto:
-### TradeaYa! es una aplicación que permite al usuario interactuar con el mercado de acciones de E.E.U.U. a través de un simulador de bolsa de valores en tiempo real. En esta app, es posible visualizar los precios de las acciones más relevantes del mercado (Apple, Tesla, etc.) en tiempo real y operar sobre ellas con dinero ficticio. Para ello, implementamos *Yahoo Finance API*, cuya función es proporcionar los datos históricos de dichas acciones. Así, el usuario obtiene la experiencia completa: analiza el comportamiento histórico de las acciones, revisa el precio actual de la acción de su interés y compra/vende utilizando dinero ficticio.
-### TradeaYa! es el simulador definitivo para futuros *traders*: permite desarrollar estrategias de inversión sin riesgo financiero real.
+Simulador de bolsa de valores con datos reales de mercado y dinero ficticio. Proyecto del curso **Algorítmica I** — Universidad Nacional Mayor de San Marcos.
 
-## 2. Reglas del Negocio:
-### Se implementarán las siguientes reglas en el proyecto, de manera que puedan asegurar el correcto funcionamiento del mismo.
-### .Validación de Saldo: El sistema no permitirá compras si el costo total de la transacción (precio de acción x cantidad) más la comisión excede el saldo disponible en la cuenta ficticia.
-### .Gestión de Comisiones: Se aplicará una comisión fija o porcentual por cada operación realizada (0.5% por transacción) para simular los costos operativos de un broker real.
-### .Horario de Mercado: Las operaciones de compra/venta solo se procesarán si el mercado de EE. UU. está abierto (Lunes a Viernes, 9:30 AM - 4:00 PM EST). Fuera de este horario, el sistema solo permitirá visualización. El sistema, sin embargo, podría permitir almacenar órdenes de compra para ejecutarlas tan pronto como el mercado vuelva a abrirse.
-### .Propiedad de Activos: El usuario solo podrá vender acciones que existan previamente en su portafolio y en cantidades iguales o menores a las que posee.
-### .Actualización de Precios: Los precios de mercado deben refrescarse con una latencia máxima definida (cada 60 segundos) para asegurar que la toma de decisiones se base en datos recientes.
+> ⚠️ Exclusivamente para fines educativos. Mercado real, dinero ficticio. No se realizan transacciones reales.
 
-## 3. Distribución del desarrollo por integrante:
-### Abad David(BackEnd): Se encargará del servidor y la gestión de datos necesarios para operar, además de establecer y mantener la conexión con las API's de Alpaca y Yahoo Finance.
-### Sánchez José(Front-End y Algoritmos): Se encargará de la lógica central de la aplicación y la parte gráfica y la experiencia de usuario (UX/UI). Traducirá las reglas del negocio en código y creará algoritmos matemáticos que calculen comisiones, validen saldos y gestionen el portafolio ficticio del usuario de forma precisa. Presentará una interfaz gráfica intuitiva, moderna y atractiva para el consumidor, graficando datos historícos de manera clara.
+---
+
+## ✨ Funcionalidades
+
+- **Autenticación**: registro e inicio de sesión con persistencia entre recargas (Streamlit Community Cloud incluido).
+- **Terminal de inversión**: búsqueda de tickers (NASDAQ), gráfico de velas japonesas (1 día / 1 mes / 1 año), calculadora de operación y botones de compra/venta.
+- **Portafolio**: saldo disponible, valor de posiciones, patrimonio total, rendimiento por acción e historial completo de operaciones.
+- **Datos en vivo**: precios, métricas y reloj de mercado (hora de Nueva York) se auto-refrescan cada 60 segundos mediante `st.fragment`, sin recargar la página completa.
+- **Persistencia híbrida**: SQLite en local, PostgreSQL (Supabase) en producción — detección automática de entorno.
+
+## 🧱 Stack
+
+| Capa | Tecnología |
+|---|---|
+| Interfaz | [Streamlit](https://streamlit.io) |
+| Datos de mercado | [yfinance](https://pypi.org/project/yfinance/) (Yahoo Finance) |
+| Gráficos | [Plotly](https://plotly.com/python/) |
+| Datos | Pandas / NumPy |
+| Base de datos | SQLite (local) · PostgreSQL vía Supabase (Cloud) |
+| Zona horaria | pytz (America/New_York) |
+
+> **Nota:** el proyecto **no utiliza Alpaca API**. Las credenciales presentes en `src/backend/.env` son remanentes de una versión anterior y no son consumidas por ningún módulo activo. Todas las órdenes de compra/venta se resuelven con lógica propia (`src/logic/`) y se persisten en la base de datos del proyecto.
+
+## 🗂️ Estructura del proyecto
+
+```
+src/
+├── frontend/
+│   ├── app.py                     # Punto de entrada, config de página y CSS global
+│   └── views/
+│       ├── login.py                # Pantalla de login / registro
+│       ├── dashboard.py             # Pantalla principal (Portafolio + Zona de Inversión)
+│       └── helpers/
+│           ├── sidebar.py           # Barra lateral: perfil, saldo, reloj de mercado
+│           ├── precio_live.py       # Fragmentos con auto-refresh (60 s)
+│           ├── grafico.py           # Gráfico de velas japonesas (Plotly)
+│           └── auxiliares.py        # Compra/venta, historial, lista de tickers
+├── backend/
+│   ├── trade_engine.py             # Puente con Yahoo Finance (precios, históricos)
+│   ├── database.py                 # Acceso a datos (SQLite/PostgreSQL)
+│   └── data_loader.py              # Exportación CSV/JSON (no integrado — ver abajo)
+└── logic/
+    ├── calculos.py                 # Reglas de negocio puras (comisiones, validaciones, horario)
+    ├── portafolio.py               # Gestión en memoria del portafolio
+    └── sesion.py                   # Clase SesionTrading: une calculos.py y portafolio.py
+```
+
+La arquitectura se divide en tres capas independientes:
+
+- **`logic/`** — funciones puras de Python, sin Streamlit ni base de datos. Reglas de negocio testeables de forma aislada.
+- **`backend/`** — comunicación con el exterior: API de precios y base de datos.
+- **`frontend/`** — interfaz gráfica, orquesta llamadas a `logic/` y `backend/`.
+
+## 📐 Reglas de negocio
+
+| Regla | Descripción |
+|---|---|
+| Horario de mercado | Lunes a viernes, 9:30–16:00 hora de Nueva York |
+| Comisión | 0.5 % por operación |
+| Frescura del precio | Máximo 60 s de antigüedad para operar |
+| Saldo | No se permite comprar por encima del saldo disponible |
+| Propiedad de activos | Solo se vende lo que existe en el portafolio |
+| Precio promedio | Se recalcula ponderado en cada nueva compra del mismo ticker |
+
+## 🚀 Cómo ejecutar en local
+
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repo>
+cd tradingdelchow
+
+# 2. Instalar dependencias
+pip install -r requirements.txt
+
+# 3. Ejecutar
+streamlit run src/frontend/app.py
+```
+
+La app crea automáticamente un archivo `tradeaya.db` (SQLite) en la raíz del proyecto la primera vez que se ejecuta.
+
+## ☁️ Despliegue en Streamlit Community Cloud
+
+1. Configurar en **App Settings → Secrets** la variable `DATABASE_URL` apuntando a la instancia de PostgreSQL (Supabase). Su presencia activa automáticamente el modo Cloud en `DatabaseManager`.
+2. Tras cualquier cambio estructural en los paquetes (`__init__.py`), usar **Reboot app** en vez de un simple redeploy, ya que Streamlit Cloud puede cachear el estado de namespace packages.
+
+## 🔌 Funcionalidad disponible pero no integrada
+
+`DataLoader` (`src/backend/data_loader.py`) exporta el historial de transacciones a CSV/JSON y está completamente operativo, pero no se conectó a la interfaz en esta entrega por no ser parte del alcance mínimo. Queda como mejora **Plus** para una futura actualización (por ejemplo, un botón de descarga en el historial de operaciones).
+
+## 👥 Equipo — PeruDevs
+
+- **Sánchez Hinostroza, José Jamir** — Lógica y Frontend
+- **Abad Cuva, David Eduardo** — Backend
+
+## 📄 Documentación adicional
+
+- `pautas/Directivas del Proyecto Grupal.md`
+- `pautas/Rubricas del proyecto final.md`
+- `Entregables/` — entregables previos del curso
