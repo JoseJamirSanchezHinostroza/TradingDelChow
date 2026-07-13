@@ -1,12 +1,11 @@
 """
 backend/database.py - TradeaYa!
-Capa de acceso a datos: usuarios, portafolio y transacciones.
+Toda operación con la DB pasa por aquí: usuarios, portafolio y transacciones.
 
 Modo LOCAL  → SQLite   (tradeaya.db)
 Modo CLOUD  → PostgreSQL via Supabase (variable DATABASE_URL en Streamlit Secrets)
 
 El método conectar() y el placeholder (?  vs  %s) se adaptan automáticamente.
-Toda operación con la base de datos pasa por aquí.
 """
 
 import os
@@ -200,7 +199,7 @@ class DatabaseManager:
         precio_compra: float,
         nuevo_saldo: float,
     ) -> bool:
-        """Atómicamente: actualiza saldo, registra transacción y actualiza portafolio."""
+        """Actualiza saldo, registra transacción y actualiza portafolio."""
         try:
             with self.conectar() as conn:
                 self._ejecutar(
@@ -264,7 +263,7 @@ class DatabaseManager:
         precio_venta: float,
         nuevo_saldo: float,
     ) -> bool:
-        """Atómicamente: actualiza saldo, registra transacción y reduce/elimina posición."""
+        """Actualiza saldo, registra transacción y reduce/elimina posición."""
         try:
             with self.conectar() as conn:
                 self._ejecutar(
