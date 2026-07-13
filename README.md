@@ -25,8 +25,6 @@ Simulador de bolsa de valores con datos reales de mercado y dinero ficticio. Pro
 | Base de datos | SQLite (local) · PostgreSQL vía Supabase (Cloud) |
 | Zona horaria | pytz (America/New_York) |
 
-> **Nota:** el proyecto **no utiliza Alpaca API**. Las credenciales presentes en `src/backend/.env` son remanentes de una versión anterior y no son consumidas por ningún módulo activo. Todas las órdenes de compra/venta se resuelven con lógica propia (`src/logic/`) y se persisten en la base de datos del proyecto.
-
 ## 🗂️ Estructura del proyecto
 
 ```
