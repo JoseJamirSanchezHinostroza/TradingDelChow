@@ -37,15 +37,16 @@ def _ejecutar_compra(sesion, db, u_id: int, simbolo: str, cantidad: int, precio_
         st.error("Precio no disponible. Consulta el ticker antes de operar.")
         return
 
-    costo_total = precio_actual * cantidad
-    if sesion.saldo < costo_total:
-        falta = costo_total - sesion.saldo
-        st.error(f"Saldo insuficiente. Te faltan ${falta:,.2f}.")
+    # 1) Validar y ejecutar primero en memoria: aquí es donde vive la lógica
+    #    de negocio real (mercado abierto, saldo, frescura del precio).
+    exito, mensaje = sesion.comprar(simbolo, cantidad, precio_actual, time.time())
+
+    if not exito:
+        st.error(mensaje)
         return
 
-    nuevo_saldo = sesion.saldo - costo_total
-    if db.guardar_compra(u_id, simbolo, cantidad, precio_actual, nuevo_saldo):
-        sesion.comprar(simbolo, cantidad, precio_actual, time.time())
+    # 2) Solo si la compra fue válida, persistir en la base de datos.
+    if db.guardar_compra(u_id, simbolo, cantidad, precio_actual, sesion.saldo):
         st.toast(f"✅ {cantidad} × {simbolo} compradas a ${precio_actual:,.2f}", icon="🟩")
         time.sleep(1.2)
         st.rerun()
