@@ -9,7 +9,6 @@ import pandas as pd                      # Librería para manipulación de datos
 
 
 class TradeEngine:
-    """Gestiona precios vía yfinance y órdenes opcionales vía Alpaca."""
 
     # ─────────────────────────────────────────────────────────
     # PRECIOS (yfinance)
